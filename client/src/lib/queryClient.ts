@@ -1,50 +1,68 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { localStorageAPI } from "./localStorage";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+// Helper function for mutations
+export const apiRequest = async (method: string, url: string, data?: any) => {
+  // Simulate API delay
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Route to appropriate localStorage function
+  if (method === "POST") {
+    if (url === "/api/employees") {
+      return localStorageAPI.createEmployee(data);
+    } else if (url === "/api/departments") {
+      return localStorageAPI.createDepartment(data);
+    } else if (url === "/api/attendance") {
+      return localStorageAPI.createAttendance(data);
+    } else if (url === "/api/payroll") {
+      return localStorageAPI.createPayroll(data);
+    } else if (url === "/api/performance") {
+      return localStorageAPI.createPerformance(data);
+    } else if (url === "/api/activities") {
+      return localStorageAPI.createActivity(data);
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
+  } else if (method === "PUT" || method === "PATCH") {
+    const id = url.split("/").pop();
+    if (url.includes("/api/employees/") && id) {
+      return localStorageAPI.updateEmployee(id, data);
+    }
+  } else if (method === "DELETE") {
+    const id = url.split("/").pop();
+    if (url.includes("/api/employees/") && id) {
+      localStorageAPI.deleteEmployee(id);
+      return { success: true };
+    }
+  }
+  
+  throw new Error(`Unknown API endpoint: ${method} ${url}`);
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
+      queryFn: async ({ queryKey }) => {
+        const url = queryKey[0] as string;
+        const params = queryKey[1] as any;
+        
+        // Route to appropriate localStorage function
+        if (url === "/api/dashboard/metrics") {
+          return localStorageAPI.getDashboardMetrics();
+        } else if (url === "/api/employees") {
+          return localStorageAPI.getEmployees();
+        } else if (url === "/api/departments") {
+          return localStorageAPI.getDepartments();
+        } else if (url === "/api/attendance") {
+          return localStorageAPI.getAttendance(params);
+        } else if (url === "/api/payroll") {
+          return localStorageAPI.getPayroll(params);
+        } else if (url === "/api/performance") {
+          return localStorageAPI.getPerformance(params);
+        } else if (url === "/api/activities") {
+          return localStorageAPI.getActivities();
+        }
+        
+        throw new Error(`Unknown endpoint: ${url}`);
+      },
       refetchInterval: false,
       refetchOnWindowFocus: false,
       staleTime: Infinity,

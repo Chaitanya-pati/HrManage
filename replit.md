@@ -2,7 +2,7 @@
 
 ## Overview
 
-FlexUI is a comprehensive Human Resource Management System (HRMS) built as a full-stack web application. The system provides complete employee lifecycle management including employee profiles, attendance tracking, leave management, payroll processing, and performance reviews. It features a modern dashboard with analytics and reporting capabilities, designed for organizations to efficiently manage their workforce and HR operations.
+FlexUI is a comprehensive Human Resource Management System (HRMS) built as a frontend-only web application. The system provides complete employee lifecycle management including employee profiles, attendance tracking, leave management, payroll processing, and performance reviews. It features a modern dashboard with analytics and reporting capabilities, designed for organizations to efficiently manage their workforce and HR operations. The application now runs entirely on the frontend using localStorage for data persistence, making it perfect for demos and local development.
 
 ## User Preferences
 
@@ -15,19 +15,18 @@ The client-side is built with **React 18** using **TypeScript** for type safety.
 
 State management is handled through **TanStack Query (React Query)** for server state management, caching, and data synchronization. Form handling uses **React Hook Form** with **Zod** for validation. The application supports responsive design with mobile-first principles and includes dark mode theming through CSS custom properties.
 
-### Backend Architecture
-The server is built with **Express.js** running on **Node.js** with **TypeScript**. The application follows a RESTful API design pattern with dedicated route handlers for different modules (employees, departments, attendance, payroll, performance, activities). 
+### Data Architecture
+The application now uses **localStorage** for data persistence, eliminating the need for a backend server or database. This makes it perfect for demos and local development. A custom data layer (`localStorage.ts`) provides a complete API simulation that:
 
-The server implements a storage abstraction layer through an `IStorage` interface, allowing for flexible data persistence strategies. The current implementation appears to support both in-memory and database storage options.
+- Stores all data in browser localStorage with automatic initialization
+- Provides sample employee, department, attendance, and performance data
+- Simulates API delays for realistic user experience
+- Maintains data relationships and integrity
+- Supports CRUD operations for all HR modules
 
-### Database Architecture
-The application uses **PostgreSQL** as the primary database with **Drizzle ORM** for database operations and **Neon Database** as the serverless PostgreSQL provider. Database migrations are managed through **Drizzle Kit**.
-
-The schema includes tables for:
-- Users and authentication
+The data structure includes:
 - Employees with department relationships
 - Attendance tracking with check-in/check-out times
-- Leave management with approval workflows
 - Payroll processing with salary calculations
 - Performance reviews and ratings
 - Activity logging for audit trails
