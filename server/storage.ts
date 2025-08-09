@@ -208,7 +208,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, createdAt: new Date() };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      role: insertUser.role ?? "employee",
+      createdAt: new Date() 
+    };
     this.users.set(id, user);
     return user;
   }
@@ -313,7 +318,12 @@ export class MemStorage implements IStorage {
 
   async createAttendance(insertAttendance: InsertAttendance): Promise<Attendance> {
     const id = randomUUID();
-    const attendance: Attendance = { ...insertAttendance, id, createdAt: new Date() };
+    const attendance: Attendance = { 
+      ...insertAttendance, 
+      id, 
+      status: insertAttendance.status ?? "present",
+      createdAt: new Date() 
+    };
     this.attendance.set(id, attendance);
     return attendance;
   }
@@ -339,12 +349,18 @@ export class MemStorage implements IStorage {
       leaves = leaves.filter(l => l.status === filters.status);
     }
     
-    return leaves.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return leaves.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   async createLeave(insertLeave: InsertLeave): Promise<Leave> {
     const id = randomUUID();
-    const leave: Leave = { ...insertLeave, id, createdAt: new Date(), approvedAt: null };
+    const leave: Leave = { 
+      ...insertLeave, 
+      id, 
+      status: insertLeave.status ?? "pending",
+      createdAt: new Date(), 
+      approvedAt: null 
+    };
     this.leaves.set(id, leave);
     return leave;
   }
@@ -377,12 +393,18 @@ export class MemStorage implements IStorage {
       payroll = payroll.filter(p => p.year === filters.year);
     }
     
-    return payroll.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return payroll.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   async createPayroll(insertPayroll: InsertPayroll): Promise<Payroll> {
     const id = randomUUID();
-    const payroll: Payroll = { ...insertPayroll, id, createdAt: new Date(), processedAt: null };
+    const payroll: Payroll = { 
+      ...insertPayroll, 
+      id, 
+      status: insertPayroll.status ?? "pending",
+      createdAt: new Date(), 
+      processedAt: null 
+    };
     this.payroll.set(id, payroll);
     return payroll;
   }
@@ -411,12 +433,18 @@ export class MemStorage implements IStorage {
       performance = performance.filter(p => p.year === filters.year);
     }
     
-    return performance.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return performance.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
   async createPerformance(insertPerformance: InsertPerformance): Promise<Performance> {
     const id = randomUUID();
-    const performance: Performance = { ...insertPerformance, id, createdAt: new Date(), completedAt: null };
+    const performance: Performance = { 
+      ...insertPerformance, 
+      id, 
+      status: insertPerformance.status ?? "pending",
+      createdAt: new Date(), 
+      completedAt: null 
+    };
     this.performance.set(id, performance);
     return performance;
   }
@@ -437,13 +465,18 @@ export class MemStorage implements IStorage {
   async getActivities(limit = 10): Promise<Activity[]> {
     const activities = Array.from(this.activities.values());
     return activities
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
       .slice(0, limit);
   }
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const id = randomUUID();
-    const activity: Activity = { ...insertActivity, id, createdAt: new Date() };
+    const activity: Activity = { 
+      ...insertActivity, 
+      id, 
+      description: insertActivity.description ?? null,
+      createdAt: new Date() 
+    };
     this.activities.set(id, activity);
     return activity;
   }
