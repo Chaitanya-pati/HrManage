@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
@@ -41,7 +40,7 @@ const employeeSchema = z.object({
   dateOfBirth: z.string().optional(),
   gender: z.enum(["male", "female", "other"]).optional(),
   maritalStatus: z.enum(["single", "married", "divorced", "widowed"]).optional(),
-  
+
   // Professional Info
   departmentId: z.string().min(1, "Department is required"),
   position: z.string().min(1, "Position is required"),
@@ -52,7 +51,7 @@ const employeeSchema = z.object({
   hireDate: z.string().min(1, "Hire date is required"),
   probationEndDate: z.string().optional(),
   shiftId: z.string().optional(),
-  
+
   // Salary Components
   baseSalary: z.string().min(1, "Base salary is required"),
   hra: z.string().default("0"),
@@ -60,7 +59,7 @@ const employeeSchema = z.object({
   medicalAllowance: z.string().default("0"),
   specialAllowance: z.string().default("0"),
   dearnessAllowance: z.string().default("0"),
-  
+
   // Overtime Configuration
   overtimeEligible: z.boolean().default(false),
   overtimeCategory: z.enum(["workmen", "staff", "management"]).optional(),
@@ -68,12 +67,12 @@ const employeeSchema = z.object({
   overtimeRate: z.string().default("1.5"),
   holidayOvertimeRate: z.string().default("2.0"),
   nightShiftOvertimeRate: z.string().default("2.0"),
-  
+
   // Field Work
   fieldWorkEligible: z.boolean().default(false),
   travelAllowance: z.string().default("0"),
   fieldAllowance: z.string().default("0"),
-  
+
   // Statutory Info
   panNumber: z.string().optional(),
   aadharNumber: z.string().optional(),
@@ -81,7 +80,7 @@ const employeeSchema = z.object({
   pfAccountNumber: z.string().optional(),
   esiNumber: z.string().optional(),
   uanNumber: z.string().optional(),
-  
+
   // Safety & Compliance
   safetyTrainingCompleted: z.boolean().default(false),
   medicalFitnessCertificate: z.string().optional(),
@@ -247,7 +246,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                       <p className="text-sm text-red-500">{errors.employeeId.message}</p>
                     )}
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="firstName">First Name *</Label>
                     <Input
@@ -427,20 +426,20 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="software_architect">Software Architect</SelectItem>
                         <SelectItem value="technical_lead">Technical Lead</SelectItem>
                         <SelectItem value="engineering_manager">Engineering Manager</SelectItem>
-                        
+
                         {/* Data & Analytics */}
                         <SelectItem value="data_scientist">Data Scientist</SelectItem>
                         <SelectItem value="data_analyst">Data Analyst</SelectItem>
                         <SelectItem value="data_engineer">Data Engineer</SelectItem>
                         <SelectItem value="business_analyst">Business Analyst</SelectItem>
                         <SelectItem value="system_analyst">System Analyst</SelectItem>
-                        
+
                         {/* Design & UX */}
                         <SelectItem value="ui_designer">UI Designer</SelectItem>
                         <SelectItem value="ux_designer">UX Designer</SelectItem>
                         <SelectItem value="graphic_designer">Graphic Designer</SelectItem>
                         <SelectItem value="product_designer">Product Designer</SelectItem>
-                        
+
                         {/* Product Management */}
                         <SelectItem value="product_manager">Product Manager</SelectItem>
                         <SelectItem value="senior_product_manager">Senior Product Manager</SelectItem>
@@ -448,7 +447,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="project_manager">Project Manager</SelectItem>
                         <SelectItem value="program_manager">Program Manager</SelectItem>
                         <SelectItem value="scrum_master">Scrum Master</SelectItem>
-                        
+
                         {/* Sales & Marketing */}
                         <SelectItem value="sales_executive">Sales Executive</SelectItem>
                         <SelectItem value="sales_manager">Sales Manager</SelectItem>
@@ -458,7 +457,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="content_writer">Content Writer</SelectItem>
                         <SelectItem value="seo_specialist">SEO Specialist</SelectItem>
                         <SelectItem value="social_media_manager">Social Media Manager</SelectItem>
-                        
+
                         {/* Finance & Accounting */}
                         <SelectItem value="accountant">Accountant</SelectItem>
                         <SelectItem value="senior_accountant">Senior Accountant</SelectItem>
@@ -470,7 +469,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="tax_specialist">Tax Specialist</SelectItem>
                         <SelectItem value="financial_controller">Financial Controller</SelectItem>
                         <SelectItem value="cfo">Chief Financial Officer</SelectItem>
-                        
+
                         {/* Human Resources */}
                         <SelectItem value="hr_executive">HR Executive</SelectItem>
                         <SelectItem value="hr_manager">HR Manager</SelectItem>
@@ -482,7 +481,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="compensation_benefits_specialist">Compensation & Benefits Specialist</SelectItem>
                         <SelectItem value="hr_business_partner">HR Business Partner</SelectItem>
                         <SelectItem value="chro">Chief Human Resources Officer</SelectItem>
-                        
+
                         {/* Operations */}
                         <SelectItem value="operations_manager">Operations Manager</SelectItem>
                         <SelectItem value="operations_executive">Operations Executive</SelectItem>
@@ -491,26 +490,26 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="facility_manager">Facility Manager</SelectItem>
                         <SelectItem value="admin_assistant">Admin Assistant</SelectItem>
                         <SelectItem value="office_manager">Office Manager</SelectItem>
-                        
+
                         {/* Customer Service */}
                         <SelectItem value="customer_service_representative">Customer Service Representative</SelectItem>
                         <SelectItem value="customer_success_manager">Customer Success Manager</SelectItem>
                         <SelectItem value="support_engineer">Support Engineer</SelectItem>
                         <SelectItem value="technical_support_specialist">Technical Support Specialist</SelectItem>
                         <SelectItem value="call_center_agent">Call Center Agent</SelectItem>
-                        
+
                         {/* Legal & Compliance */}
                         <SelectItem value="legal_counsel">Legal Counsel</SelectItem>
                         <SelectItem value="compliance_officer">Compliance Officer</SelectItem>
                         <SelectItem value="legal_assistant">Legal Assistant</SelectItem>
                         <SelectItem value="contract_specialist">Contract Specialist</SelectItem>
-                        
+
                         {/* Security */}
                         <SelectItem value="security_officer">Security Officer</SelectItem>
                         <SelectItem value="security_guard">Security Guard</SelectItem>
                         <SelectItem value="cybersecurity_analyst">Cybersecurity Analyst</SelectItem>
                         <SelectItem value="information_security_manager">Information Security Manager</SelectItem>
-                        
+
                         {/* Executive */}
                         <SelectItem value="ceo">Chief Executive Officer</SelectItem>
                         <SelectItem value="cto">Chief Technology Officer</SelectItem>
@@ -521,7 +520,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="vp_marketing">VP Marketing</SelectItem>
                         <SelectItem value="director">Director</SelectItem>
                         <SelectItem value="associate_director">Associate Director</SelectItem>
-                        
+
                         {/* Industrial/Manufacturing */}
                         <SelectItem value="production_manager">Production Manager</SelectItem>
                         <SelectItem value="production_supervisor">Production Supervisor</SelectItem>
@@ -624,58 +623,29 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectItem value="senior_manager">Senior Manager</SelectItem>
                         <SelectItem value="director">Director</SelectItem>
                         <SelectItem value="vice_president">Vice President</SelectItem>
-                        <SelectItem value="president">President</SelectItem>
                         <SelectItem value="l1">L1 - Entry Level</SelectItem>
-                        <SelectItem value="l2">L2 - Junior</SelectItem>
+                        <SelectItem value="l2">L2 - Associate</SelectItem>
                         <SelectItem value="l3">L3 - Mid Level</SelectItem>
                         <SelectItem value="l4">L4 - Senior</SelectItem>
                         <SelectItem value="l5">L5 - Staff</SelectItem>
-                        <SelectItem value="l6">L6 - Senior Staff</SelectItem>
-                        <SelectItem value="l7">L7 - Principal</SelectItem>
-                        <SelectItem value="l8">L8 - Distinguished</SelectItem>
+                        <SelectItem value="l6">L6 - Principal</SelectItem>
+                        <SelectItem value="l7">L7 - Distinguished</SelectItem>
                         <SelectItem value="m1">M1 - Team Lead</SelectItem>
                         <SelectItem value="m2">M2 - Manager</SelectItem>
                         <SelectItem value="m3">M3 - Senior Manager</SelectItem>
                         <SelectItem value="m4">M4 - Director</SelectItem>
-                        <SelectItem value="m5">M5 - Senior Director</SelectItem>
-                        <SelectItem value="e1">E1 - Engineer I</SelectItem>
-                        <SelectItem value="e2">E2 - Engineer II</SelectItem>
-                        <SelectItem value="e3">E3 - Engineer III</SelectItem>
-                        <SelectItem value="e4">E4 - Senior Engineer</SelectItem>
-                        <SelectItem value="e5">E5 - Staff Engineer</SelectItem>
-                        <SelectItem value="e6">E6 - Principal Engineer</SelectItem>
                         <SelectItem value="grade_a">Grade A</SelectItem>
                         <SelectItem value="grade_b">Grade B</SelectItem>
                         <SelectItem value="grade_c">Grade C</SelectItem>
                         <SelectItem value="grade_d">Grade D</SelectItem>
                         <SelectItem value="grade_e">Grade E</SelectItem>
-                        <SelectItem value="1">Grade 1</SelectItem>
-                        <SelectItem value="2">Grade 2</SelectItem>
-                        <SelectItem value="3">Grade 3</SelectItem>
-                        <SelectItem value="4">Grade 4</SelectItem>
-                        <SelectItem value="5">Grade 5</SelectItem>
-                        <SelectItem value="6">Grade 6</SelectItem>
-                        <SelectItem value="7">Grade 7</SelectItem>
-                        <SelectItem value="8">Grade 8</SelectItem>
-                        <SelectItem value="9">Grade 9</SelectItem>
-                        <SelectItem value="10">Grade 10</SelectItem>
-                        <SelectItem value="officer">Officer</SelectItem>
-                        <SelectItem value="assistant_manager">Assistant Manager</SelectItem>
-                        <SelectItem value="deputy_manager">Deputy Manager</SelectItem>
-                        <SelectItem value="general_manager">General Manager</SelectItem>
-                        <SelectItem value="executive">Executive</SelectItem>
-                        <SelectItem value="senior_executive">Senior Executive</SelectItem>
+                        <SelectItem value="exec_1">Executive Level 1</SelectItem>
+                        <SelectItem value="exec_2">Executive Level 2</SelectItem>
+                        <SelectItem value="exec_3">Executive Level 3</SelectItem>
                         <SelectItem value="specialist">Specialist</SelectItem>
                         <SelectItem value="expert">Expert</SelectItem>
                         <SelectItem value="consultant">Consultant</SelectItem>
-                        <SelectItem value="senior_consultant">Senior Consultant</SelectItem>
-                        <SelectItem value="architect">Architect</SelectItem>
-                        <SelectItem value="senior_architect">Senior Architect</SelectItem>
-                        <SelectItem value="team_member">Team Member</SelectItem>
-                        <SelectItem value="supervisor">Supervisor</SelectItem>
-                        <SelectItem value="coordinator">Coordinator</SelectItem>
-                        <SelectItem value="analyst">Analyst</SelectItem>
-                        <SelectItem value="senior_analyst">Senior Analyst</SelectItem>
+                        <SelectItem value="advisor">Advisor</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

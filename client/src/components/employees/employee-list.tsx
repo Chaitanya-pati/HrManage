@@ -22,8 +22,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users } from "lucide-react";
-import { EmployeeWithDepartment } from "@/lib/types";
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Download, Mail, Phone } from "lucide-react";
+
+interface EmployeeListProps {
+  employees: EmployeeWithDepartment[];
+  isLoading: boolean;
+}
 
 const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
