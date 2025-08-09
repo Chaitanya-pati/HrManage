@@ -8,6 +8,22 @@ FlexUI is a comprehensive Human Resource Management System (HRMS) built as a fro
 
 Preferred communication style: Simple, everyday language.
 
+## Project Requirements (Latest Update: 2025-08-09)
+
+The user has outlined comprehensive HRMS requirements including:
+- Employee Count tracking and metrics
+- Shift management system
+- Advanced payroll processing with:
+  - Overtime tracking
+  - Time office gate integration
+  - In/out time tracking
+  - Biometric integration support
+  - Salary slip generation
+- Remote/out-office employee tracking with optimal solutions
+- Comprehensive leave management system
+
+These features represent the next phase of development beyond the basic employee management currently implemented.
+
 ## System Architecture
 
 ### Frontend Architecture

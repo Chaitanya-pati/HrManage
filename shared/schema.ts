@@ -41,14 +41,36 @@ export const employees = pgTable("employees", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const shifts = pgTable("shifts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  startTime: text("start_time").notNull(), // Format: "09:00"
+  endTime: text("end_time").notNull(), // Format: "17:00"
+  breakDuration: integer("break_duration").default(60), // minutes
+  isFlexible: boolean("is_flexible").default(false),
+  overtimeThreshold: decimal("overtime_threshold", { precision: 4, scale: 2 }).default("8.0"), // hours
+  departmentId: varchar("department_id").references(() => departments.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const attendance = pgTable("attendance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   employeeId: varchar("employee_id").references(() => employees.id).notNull(),
+  shiftId: varchar("shift_id").references(() => shifts.id),
   date: timestamp("date").notNull(),
   checkIn: timestamp("check_in"),
   checkOut: timestamp("check_out"),
+  breakStart: timestamp("break_start"),
+  breakEnd: timestamp("break_end"),
   hoursWorked: decimal("hours_worked", { precision: 4, scale: 2 }),
-  status: text("status").notNull().default("present"),
+  overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default("0"),
+  status: text("status").notNull().default("present"), // present, absent, late, early_leave
+  location: text("location"), // office, remote, field
+  gateEntry: timestamp("gate_entry"), // Biometric gate entry time
+  gateExit: timestamp("gate_exit"), // Biometric gate exit time
+  biometricId: text("biometric_id"), // Biometric device ID
+  isRemote: boolean("is_remote").default(false),
+  remoteLocation: jsonb("remote_location"), // GPS coordinates for remote work
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -74,10 +96,30 @@ export const payroll = pgTable("payroll", {
   year: integer("year").notNull(),
   baseSalary: decimal("base_salary", { precision: 10, scale: 2 }).notNull(),
   allowances: decimal("allowances", { precision: 10, scale: 2 }).default("0"),
+  overtimePay: decimal("overtime_pay", { precision: 10, scale: 2 }).default("0"),
+  regularHours: decimal("regular_hours", { precision: 4, scale: 2 }).default("0"),
+  overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default("0"),
+  totalHours: decimal("total_hours", { precision: 4, scale: 2 }).default("0"),
+  hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
+  overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
   deductions: decimal("deductions", { precision: 10, scale: 2 }).default("0"),
+  tax: decimal("tax", { precision: 10, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 10, scale: 2 }).notNull(),
-  status: text("status").notNull().default("pending"),
+  status: text("status").notNull().default("pending"), // pending, processed, paid
+  payDate: timestamp("pay_date"),
   processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const salarySlips = pgTable("salary_slips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  payrollId: varchar("payroll_id").references(() => payroll.id).notNull(),
+  employeeId: varchar("employee_id").references(() => employees.id).notNull(),
+  slipNumber: text("slip_number").notNull().unique(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  generatedAt: timestamp("generated_at").defaultNow(),
+  downloadedAt: timestamp("downloaded_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -128,9 +170,24 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
   salary: z.string().transform((val) => val || "0"),
 });
 
+export const insertShiftSchema = createInsertSchema(shifts).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({
   id: true,
   createdAt: true,
+}).extend({
+  date: z.union([z.date(), z.string()]).transform((val) => new Date(val)),
+  checkIn: z.union([z.date(), z.string()]).transform((val) => val ? new Date(val) : null).nullable().optional(),
+  checkOut: z.union([z.date(), z.string()]).transform((val) => val ? new Date(val) : null).nullable().optional(),
+});
+
+export const insertSalarySlipSchema = createInsertSchema(salarySlips).omit({
+  id: true,
+  createdAt: true,
+  generatedAt: true,
 });
 
 export const insertLeaveSchema = createInsertSchema(leaves).omit({
@@ -166,6 +223,9 @@ export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;
 export type Employee = typeof employees.$inferSelect;
 export type InsertEmployee = z.infer<typeof insertEmployeeSchema>;
 
+export type Shift = typeof shifts.$inferSelect;
+export type InsertShift = z.infer<typeof insertShiftSchema>;
+
 export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = z.infer<typeof insertAttendanceSchema>;
 
@@ -181,6 +241,9 @@ export type InsertPerformance = z.infer<typeof insertPerformanceSchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
+export type SalarySlip = typeof salarySlips.$inferSelect;
+export type InsertSalarySlip = z.infer<typeof insertSalarySlipSchema>;
+
 // Extended types for joins
 export type EmployeeWithDepartment = Employee & {
   department?: Department;
@@ -189,9 +252,14 @@ export type EmployeeWithDepartment = Employee & {
 
 export type AttendanceWithEmployee = Attendance & {
   employee: Employee;
+  shift?: Shift;
 };
 
 export type LeaveWithEmployee = Leave & {
   employee: Employee;
   approver?: Employee;
+};
+
+export type PayrollWithEmployee = Payroll & {
+  employee: Employee;
 };
