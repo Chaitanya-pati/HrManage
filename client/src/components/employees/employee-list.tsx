@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { EmployeeWithDepartment } from "@shared/schema";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,12 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Download, MoreHorizontal, Eye, Edit, Trash2, Mail, Phone } from "lucide-react";
-
-interface EmployeeListProps {
-  employees: EmployeeWithDepartment[];
-  isLoading: boolean;
-}
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users } from "lucide-react";
+import { EmployeeWithDepartment } from "@/lib/types";
 
 const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
@@ -39,6 +35,19 @@ const getStatusVariant = (status: string): "default" | "secondary" | "destructiv
       return 'destructive';
     default:
       return 'outline';
+  }
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'active':
+      return 'bg-green-100 text-green-800';
+    case 'on_leave':
+      return 'bg-yellow-100 text-yellow-800';
+    case 'inactive':
+      return 'bg-red-100 text-red-800';
+    default:
+      return 'bg-gray-100 text-gray-800';
   }
 };
 
@@ -76,9 +85,9 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
       employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (employee.department?.name || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = filterStatus === "all" || employee.status === filterStatus;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -143,7 +152,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
               {filteredEmployees.length} of {employees.length} employees
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
@@ -155,7 +164,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                 data-testid="employee-search"
               />
             </div>
-            
+
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -167,7 +176,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
               <option value="on_leave">On Leave</option>
               <option value="inactive">Inactive</option>
             </select>
-            
+
             <Button variant="outline" size="sm" className="flex items-center gap-2" data-testid="export-button">
               <Download size={16} />
               Export
@@ -231,7 +240,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                         </div>
                       </div>
                     </TableCell>
-                    
+
                     <TableCell className="py-4">
                       <div>
                         <p className="font-medium text-gray-900" data-testid={`employee-position-${employee.id}`}>
@@ -245,16 +254,16 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                         </p>
                       </div>
                     </TableCell>
-                    
+
                     <TableCell className="py-4">
                       <span 
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(employee.status)}`}
                         data-testid={`employee-department-${employee.id}`}
                       >
                         {employee.department?.name || 'Unassigned'}
                       </span>
                     </TableCell>
-                    
+
                     <TableCell className="py-4">
                       <div className="space-y-1">
                         <div className="flex items-center text-sm text-gray-900">
@@ -273,7 +282,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                         )}
                       </div>
                     </TableCell>
-                    
+
                     <TableCell className="py-4">
                       <Badge 
                         variant={getStatusVariant(employee.status)} 
@@ -283,7 +292,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                         {getStatusText(employee.status)}
                       </Badge>
                     </TableCell>
-                    
+
                     <TableCell className="py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

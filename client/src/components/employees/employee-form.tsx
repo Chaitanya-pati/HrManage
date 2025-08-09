@@ -407,11 +407,150 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
 
                   <div className="space-y-2">
                     <Label htmlFor="position">Position *</Label>
-                    <Input
-                      id="position"
-                      {...register("position")}
-                      placeholder="Software Developer"
-                    />
+                    <Select onValueChange={(value) => setValue("position", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* Software Development */}
+                        <SelectItem value="software_developer">Software Developer</SelectItem>
+                        <SelectItem value="junior_developer">Junior Developer</SelectItem>
+                        <SelectItem value="senior_developer">Senior Developer</SelectItem>
+                        <SelectItem value="lead_developer">Lead Developer</SelectItem>
+                        <SelectItem value="full_stack_developer">Full Stack Developer</SelectItem>
+                        <SelectItem value="frontend_developer">Frontend Developer</SelectItem>
+                        <SelectItem value="backend_developer">Backend Developer</SelectItem>
+                        <SelectItem value="mobile_developer">Mobile Developer</SelectItem>
+                        <SelectItem value="devops_engineer">DevOps Engineer</SelectItem>
+                        <SelectItem value="qa_engineer">QA Engineer</SelectItem>
+                        <SelectItem value="test_engineer">Test Engineer</SelectItem>
+                        <SelectItem value="software_architect">Software Architect</SelectItem>
+                        <SelectItem value="technical_lead">Technical Lead</SelectItem>
+                        <SelectItem value="engineering_manager">Engineering Manager</SelectItem>
+                        
+                        {/* Data & Analytics */}
+                        <SelectItem value="data_scientist">Data Scientist</SelectItem>
+                        <SelectItem value="data_analyst">Data Analyst</SelectItem>
+                        <SelectItem value="data_engineer">Data Engineer</SelectItem>
+                        <SelectItem value="business_analyst">Business Analyst</SelectItem>
+                        <SelectItem value="system_analyst">System Analyst</SelectItem>
+                        
+                        {/* Design & UX */}
+                        <SelectItem value="ui_designer">UI Designer</SelectItem>
+                        <SelectItem value="ux_designer">UX Designer</SelectItem>
+                        <SelectItem value="graphic_designer">Graphic Designer</SelectItem>
+                        <SelectItem value="product_designer">Product Designer</SelectItem>
+                        
+                        {/* Product Management */}
+                        <SelectItem value="product_manager">Product Manager</SelectItem>
+                        <SelectItem value="senior_product_manager">Senior Product Manager</SelectItem>
+                        <SelectItem value="product_owner">Product Owner</SelectItem>
+                        <SelectItem value="project_manager">Project Manager</SelectItem>
+                        <SelectItem value="program_manager">Program Manager</SelectItem>
+                        <SelectItem value="scrum_master">Scrum Master</SelectItem>
+                        
+                        {/* Sales & Marketing */}
+                        <SelectItem value="sales_executive">Sales Executive</SelectItem>
+                        <SelectItem value="sales_manager">Sales Manager</SelectItem>
+                        <SelectItem value="marketing_executive">Marketing Executive</SelectItem>
+                        <SelectItem value="marketing_manager">Marketing Manager</SelectItem>
+                        <SelectItem value="digital_marketing_specialist">Digital Marketing Specialist</SelectItem>
+                        <SelectItem value="content_writer">Content Writer</SelectItem>
+                        <SelectItem value="seo_specialist">SEO Specialist</SelectItem>
+                        <SelectItem value="social_media_manager">Social Media Manager</SelectItem>
+                        
+                        {/* Finance & Accounting */}
+                        <SelectItem value="accountant">Accountant</SelectItem>
+                        <SelectItem value="senior_accountant">Senior Accountant</SelectItem>
+                        <SelectItem value="financial_analyst">Financial Analyst</SelectItem>
+                        <SelectItem value="finance_manager">Finance Manager</SelectItem>
+                        <SelectItem value="accounts_payable_clerk">Accounts Payable Clerk</SelectItem>
+                        <SelectItem value="accounts_receivable_clerk">Accounts Receivable Clerk</SelectItem>
+                        <SelectItem value="payroll_specialist">Payroll Specialist</SelectItem>
+                        <SelectItem value="tax_specialist">Tax Specialist</SelectItem>
+                        <SelectItem value="financial_controller">Financial Controller</SelectItem>
+                        <SelectItem value="cfo">Chief Financial Officer</SelectItem>
+                        
+                        {/* Human Resources */}
+                        <SelectItem value="hr_executive">HR Executive</SelectItem>
+                        <SelectItem value="hr_manager">HR Manager</SelectItem>
+                        <SelectItem value="hr_generalist">HR Generalist</SelectItem>
+                        <SelectItem value="hr_specialist">HR Specialist</SelectItem>
+                        <SelectItem value="recruiter">Recruiter</SelectItem>
+                        <SelectItem value="talent_acquisition_specialist">Talent Acquisition Specialist</SelectItem>
+                        <SelectItem value="training_specialist">Training Specialist</SelectItem>
+                        <SelectItem value="compensation_benefits_specialist">Compensation & Benefits Specialist</SelectItem>
+                        <SelectItem value="hr_business_partner">HR Business Partner</SelectItem>
+                        <SelectItem value="chro">Chief Human Resources Officer</SelectItem>
+                        
+                        {/* Operations */}
+                        <SelectItem value="operations_manager">Operations Manager</SelectItem>
+                        <SelectItem value="operations_executive">Operations Executive</SelectItem>
+                        <SelectItem value="process_analyst">Process Analyst</SelectItem>
+                        <SelectItem value="operations_coordinator">Operations Coordinator</SelectItem>
+                        <SelectItem value="facility_manager">Facility Manager</SelectItem>
+                        <SelectItem value="admin_assistant">Admin Assistant</SelectItem>
+                        <SelectItem value="office_manager">Office Manager</SelectItem>
+                        
+                        {/* Customer Service */}
+                        <SelectItem value="customer_service_representative">Customer Service Representative</SelectItem>
+                        <SelectItem value="customer_success_manager">Customer Success Manager</SelectItem>
+                        <SelectItem value="support_engineer">Support Engineer</SelectItem>
+                        <SelectItem value="technical_support_specialist">Technical Support Specialist</SelectItem>
+                        <SelectItem value="call_center_agent">Call Center Agent</SelectItem>
+                        
+                        {/* Legal & Compliance */}
+                        <SelectItem value="legal_counsel">Legal Counsel</SelectItem>
+                        <SelectItem value="compliance_officer">Compliance Officer</SelectItem>
+                        <SelectItem value="legal_assistant">Legal Assistant</SelectItem>
+                        <SelectItem value="contract_specialist">Contract Specialist</SelectItem>
+                        
+                        {/* Security */}
+                        <SelectItem value="security_officer">Security Officer</SelectItem>
+                        <SelectItem value="security_guard">Security Guard</SelectItem>
+                        <SelectItem value="cybersecurity_analyst">Cybersecurity Analyst</SelectItem>
+                        <SelectItem value="information_security_manager">Information Security Manager</SelectItem>
+                        
+                        {/* Executive */}
+                        <SelectItem value="ceo">Chief Executive Officer</SelectItem>
+                        <SelectItem value="cto">Chief Technology Officer</SelectItem>
+                        <SelectItem value="coo">Chief Operating Officer</SelectItem>
+                        <SelectItem value="cmo">Chief Marketing Officer</SelectItem>
+                        <SelectItem value="vp_engineering">VP Engineering</SelectItem>
+                        <SelectItem value="vp_sales">VP Sales</SelectItem>
+                        <SelectItem value="vp_marketing">VP Marketing</SelectItem>
+                        <SelectItem value="director">Director</SelectItem>
+                        <SelectItem value="associate_director">Associate Director</SelectItem>
+                        
+                        {/* Industrial/Manufacturing */}
+                        <SelectItem value="production_manager">Production Manager</SelectItem>
+                        <SelectItem value="production_supervisor">Production Supervisor</SelectItem>
+                        <SelectItem value="machine_operator">Machine Operator</SelectItem>
+                        <SelectItem value="quality_control_inspector">Quality Control Inspector</SelectItem>
+                        <SelectItem value="maintenance_technician">Maintenance Technician</SelectItem>
+                        <SelectItem value="safety_officer">Safety Officer</SelectItem>
+                        <SelectItem value="warehouse_manager">Warehouse Manager</SelectItem>
+                        <SelectItem value="inventory_specialist">Inventory Specialist</SelectItem>
+                        <SelectItem value="logistics_coordinator">Logistics Coordinator</SelectItem>
+                        <SelectItem value="plant_engineer">Plant Engineer</SelectItem>
+                        <SelectItem value="mechanical_engineer">Mechanical Engineer</SelectItem>
+                        <SelectItem value="electrical_engineer">Electrical Engineer</SelectItem>
+                        <SelectItem value="industrial_engineer">Industrial Engineer</SelectItem>
+                        <SelectItem value="field_technician">Field Technician</SelectItem>
+                        <SelectItem value="site_supervisor">Site Supervisor</SelectItem>
+                        <SelectItem value="foreman">Foreman</SelectItem>
+                        <SelectItem value="welder">Welder</SelectItem>
+                        <SelectItem value="fitter">Fitter</SelectItem>
+                        <SelectItem value="electrician">Electrician</SelectItem>
+                        <SelectItem value="plumber">Plumber</SelectItem>
+                        <SelectItem value="carpenter">Carpenter</SelectItem>
+                        <SelectItem value="mason">Mason</SelectItem>
+                        <SelectItem value="driver">Driver</SelectItem>
+                        <SelectItem value="helper">Helper</SelectItem>
+                        <SelectItem value="laborer">Laborer</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
                     {errors.position && (
                       <p className="text-sm text-red-500">{errors.position.message}</p>
                     )}
@@ -470,11 +609,75 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
 
                   <div className="space-y-2">
                     <Label htmlFor="employeeGrade">Employee Grade</Label>
-                    <Input
-                      id="employeeGrade"
-                      {...register("employeeGrade")}
-                      placeholder="L1, L2, M1, etc."
-                    />
+                    <Select onValueChange={(value) => setValue("employeeGrade", value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select employee grade" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="trainee">Trainee</SelectItem>
+                        <SelectItem value="junior">Junior</SelectItem>
+                        <SelectItem value="associate">Associate</SelectItem>
+                        <SelectItem value="senior">Senior</SelectItem>
+                        <SelectItem value="lead">Lead</SelectItem>
+                        <SelectItem value="principal">Principal</SelectItem>
+                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="senior_manager">Senior Manager</SelectItem>
+                        <SelectItem value="director">Director</SelectItem>
+                        <SelectItem value="vice_president">Vice President</SelectItem>
+                        <SelectItem value="president">President</SelectItem>
+                        <SelectItem value="l1">L1 - Entry Level</SelectItem>
+                        <SelectItem value="l2">L2 - Junior</SelectItem>
+                        <SelectItem value="l3">L3 - Mid Level</SelectItem>
+                        <SelectItem value="l4">L4 - Senior</SelectItem>
+                        <SelectItem value="l5">L5 - Staff</SelectItem>
+                        <SelectItem value="l6">L6 - Senior Staff</SelectItem>
+                        <SelectItem value="l7">L7 - Principal</SelectItem>
+                        <SelectItem value="l8">L8 - Distinguished</SelectItem>
+                        <SelectItem value="m1">M1 - Team Lead</SelectItem>
+                        <SelectItem value="m2">M2 - Manager</SelectItem>
+                        <SelectItem value="m3">M3 - Senior Manager</SelectItem>
+                        <SelectItem value="m4">M4 - Director</SelectItem>
+                        <SelectItem value="m5">M5 - Senior Director</SelectItem>
+                        <SelectItem value="e1">E1 - Engineer I</SelectItem>
+                        <SelectItem value="e2">E2 - Engineer II</SelectItem>
+                        <SelectItem value="e3">E3 - Engineer III</SelectItem>
+                        <SelectItem value="e4">E4 - Senior Engineer</SelectItem>
+                        <SelectItem value="e5">E5 - Staff Engineer</SelectItem>
+                        <SelectItem value="e6">E6 - Principal Engineer</SelectItem>
+                        <SelectItem value="grade_a">Grade A</SelectItem>
+                        <SelectItem value="grade_b">Grade B</SelectItem>
+                        <SelectItem value="grade_c">Grade C</SelectItem>
+                        <SelectItem value="grade_d">Grade D</SelectItem>
+                        <SelectItem value="grade_e">Grade E</SelectItem>
+                        <SelectItem value="1">Grade 1</SelectItem>
+                        <SelectItem value="2">Grade 2</SelectItem>
+                        <SelectItem value="3">Grade 3</SelectItem>
+                        <SelectItem value="4">Grade 4</SelectItem>
+                        <SelectItem value="5">Grade 5</SelectItem>
+                        <SelectItem value="6">Grade 6</SelectItem>
+                        <SelectItem value="7">Grade 7</SelectItem>
+                        <SelectItem value="8">Grade 8</SelectItem>
+                        <SelectItem value="9">Grade 9</SelectItem>
+                        <SelectItem value="10">Grade 10</SelectItem>
+                        <SelectItem value="officer">Officer</SelectItem>
+                        <SelectItem value="assistant_manager">Assistant Manager</SelectItem>
+                        <SelectItem value="deputy_manager">Deputy Manager</SelectItem>
+                        <SelectItem value="general_manager">General Manager</SelectItem>
+                        <SelectItem value="executive">Executive</SelectItem>
+                        <SelectItem value="senior_executive">Senior Executive</SelectItem>
+                        <SelectItem value="specialist">Specialist</SelectItem>
+                        <SelectItem value="expert">Expert</SelectItem>
+                        <SelectItem value="consultant">Consultant</SelectItem>
+                        <SelectItem value="senior_consultant">Senior Consultant</SelectItem>
+                        <SelectItem value="architect">Architect</SelectItem>
+                        <SelectItem value="senior_architect">Senior Architect</SelectItem>
+                        <SelectItem value="team_member">Team Member</SelectItem>
+                        <SelectItem value="supervisor">Supervisor</SelectItem>
+                        <SelectItem value="coordinator">Coordinator</SelectItem>
+                        <SelectItem value="analyst">Analyst</SelectItem>
+                        <SelectItem value="senior_analyst">Senior Analyst</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
