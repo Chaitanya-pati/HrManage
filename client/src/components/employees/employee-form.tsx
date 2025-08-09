@@ -22,6 +22,8 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  console.log("Available departments in form:", departments);
+
   const form = useForm<InsertEmployee>({
     resolver: zodResolver(insertEmployeeSchema),
     defaultValues: {
@@ -71,6 +73,7 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
   });
 
   const onSubmit = (data: InsertEmployee) => {
+    console.log("Form data being submitted:", data);
     createEmployeeMutation.mutate(data);
   };
 

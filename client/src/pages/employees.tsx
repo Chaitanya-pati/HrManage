@@ -11,11 +11,11 @@ export default function Employees() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
 
-  const { data: employees, isLoading } = useQuery({
+  const { data: employees = [], isLoading } = useQuery({
     queryKey: ["/api/employees"],
   });
 
-  const { data: departments } = useQuery({
+  const { data: departments = [] } = useQuery({
     queryKey: ["/api/departments"],
   });
 
@@ -48,12 +48,12 @@ export default function Employees() {
 
             {showAddForm ? (
               <EmployeeForm 
-                departments={departments || []}
+                departments={departments}
                 onCancel={() => setShowAddForm(false)}
                 onSuccess={() => setShowAddForm(false)}
               />
             ) : (
-              <EmployeeList employees={employees || []} isLoading={isLoading} />
+              <EmployeeList employees={employees} isLoading={isLoading} />
             )}
           </div>
         </main>
