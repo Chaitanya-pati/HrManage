@@ -164,8 +164,8 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
                   <FormItem>
                     <FormLabel>Department</FormLabel>
                     <Select 
-                      onValueChange={(value) => field.onChange(value === "" ? null : value)} 
-                      value={field.value || ""}
+                      onValueChange={(value) => field.onChange(value === "none" ? null : value)} 
+                      value={field.value || "none"}
                     >
                       <FormControl>
                         <SelectTrigger data-testid="select-department">
@@ -173,7 +173,7 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">None (Unassigned)</SelectItem>
+                        <SelectItem value="none">None (Unassigned)</SelectItem>
                         {departments.map((dept) => (
                           <SelectItem key={dept.id} value={dept.id}>
                             {dept.name}
