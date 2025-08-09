@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -96,9 +96,18 @@ interface EmployeeFormProps {
 }
 
 export default function EmployeeForm({ employee, onSuccess, onCancel }: EmployeeFormProps) {
-  const [activeTab, setActiveTab] = useState("personal");
+  const [currentStep, setCurrentStep] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const steps = [
+    { id: "personal", title: "Personal Information", icon: User },
+    { id: "professional", title: "Professional Information", icon: Briefcase },
+    { id: "salary", title: "Salary & Benefits", icon: DollarSign },
+    { id: "education", title: "Education & Skills", icon: GraduationCap },
+    { id: "statutory", title: "Statutory Information", icon: CreditCard },
+    { id: "compliance", title: "Safety & Compliance", icon: Shield },
+  ];
 
   const { data: departments = [] } = useQuery({
     queryKey: ["/api/departments"],
@@ -186,6 +195,21 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
     createEmployeeMutation.mutate(data);
   };
 
+  const nextStep = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const isLastStep = currentStep === steps.length - 1;
+  const isFirstStep = currentStep === 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -194,37 +218,47 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
         </h2>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="personal" className="flex items-center space-x-1">
-            <User className="h-4 w-4" />
-            <span className="hidden sm:inline">Personal</span>
-          </TabsTrigger>
-          <TabsTrigger value="professional" className="flex items-center space-x-1">
-            <Briefcase className="h-4 w-4" />
-            <span className="hidden sm:inline">Professional</span>
-          </TabsTrigger>
-          <TabsTrigger value="salary" className="flex items-center space-x-1">
-            <DollarSign className="h-4 w-4" />
-            <span className="hidden sm:inline">Salary</span>
-          </TabsTrigger>
-          <TabsTrigger value="education" className="flex items-center space-x-1">
-            <GraduationCap className="h-4 w-4" />
-            <span className="hidden sm:inline">Education</span>
-          </TabsTrigger>
-          <TabsTrigger value="statutory" className="flex items-center space-x-1">
-            <CreditCard className="h-4 w-4" />
-            <span className="hidden sm:inline">Statutory</span>
-          </TabsTrigger>
-          <TabsTrigger value="compliance" className="flex items-center space-x-1">
-            <Shield className="h-4 w-4" />
-            <span className="hidden sm:inline">Compliance</span>
-          </TabsTrigger>
-        </TabsList>
+      {/* Step Progress Indicator */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const StepIcon = step.icon;
+            return (
+              <div key={step.id} className="flex items-center">
+                <div
+                  className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+                    index === currentStep
+                      ? "bg-hrms-primary border-hrms-primary text-white"
+                      : index < currentStep
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-gray-100 border-gray-300 text-gray-500"
+                  }`}
+                >
+                  <StepIcon className="h-5 w-5" />
+                </div>
+                {index < steps.length - 1 && (
+                  <div
+                    className={`w-12 h-1 mx-2 ${
+                      index < currentStep ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="mt-4 text-center">
+          <h3 className="text-lg font-semibold">{steps[currentStep].title}</h3>
+          <p className="text-sm text-gray-600">
+            Step {currentStep + 1} of {steps.length}
+          </p>
+        </div>
+      </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Personal Information */}
-          <TabsContent value="personal" className="space-y-4">
+          {currentStep === 0 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -372,10 +406,12 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
           {/* Professional Information */}
-          <TabsContent value="professional" className="space-y-4">
+          {currentStep === 1 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -392,7 +428,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectValue placeholder="Select department" />
                       </SelectTrigger>
                       <SelectContent>
-                        {departments.map((dept: any) => (
+                        {(departments as any[]).map((dept: any) => (
                           <SelectItem key={dept.id} value={dept.id}>
                             {dept.name}
                           </SelectItem>
@@ -564,7 +600,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                         <SelectValue placeholder="Select manager" />
                       </SelectTrigger>
                       <SelectContent>
-                        {employees.filter((emp: any) => emp.id !== employee?.id).map((emp: any) => (
+                        {(employees as any[]).filter((emp: any) => emp.id !== employee?.id).map((emp: any) => (
                           <SelectItem key={emp.id} value={emp.id}>
                             {emp.firstName} {emp.lastName} ({emp.employeeId})
                           </SelectItem>
@@ -681,8 +717,8 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="no-shift">No Shift Assigned</SelectItem>
-                        {shifts && shifts.length > 0 ? (
-                          shifts.map((shift: any) => (
+                        {shifts && (shifts as any[]).length > 0 ? (
+                          (shifts as any[]).map((shift: any) => (
                             <SelectItem key={shift.id} value={shift.id}>
                               {shift.name} ({shift.startTime} - {shift.endTime})
                             </SelectItem>
@@ -741,10 +777,12 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
           {/* Salary Information */}
-          <TabsContent value="salary" className="space-y-4">
+          {currentStep === 2 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -902,10 +940,12 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 </Card>
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
           {/* Education Information */}
-          <TabsContent value="education" className="space-y-4">
+          {currentStep === 3 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -926,10 +966,12 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
           {/* Statutory Information */}
-          <TabsContent value="statutory" className="space-y-4">
+          {currentStep === 4 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1001,10 +1043,12 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
           {/* Compliance */}
-          <TabsContent value="compliance" className="space-y-4">
+          {currentStep === 5 && (
+            <div className="space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1045,27 +1089,57 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+            </div>
+          )}
 
-          {/* Action Buttons */}
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : (employee ? "Update Employee" : "Create Employee")}
-            </Button>
+          {/* Navigation Buttons */}
+          <div className="flex justify-between items-center pt-6 border-t">
+            <div>
+              {!isFirstStep && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={prevStep}
+                  disabled={isSubmitting}
+                  data-testid="button-previous"
+                >
+                  Previous
+                </Button>
+              )}
+            </div>
+
+            <div className="flex space-x-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onCancel}
+                disabled={isSubmitting}
+                data-testid="button-cancel"
+              >
+                Cancel
+              </Button>
+              
+              {!isLastStep ? (
+                <Button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={isSubmitting}
+                  data-testid="button-next"
+                >
+                  Next
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  data-testid="button-save-employee"
+                >
+                  {isSubmitting ? "Saving..." : (employee ? "Update Employee" : "Save Employee")}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
-      </Tabs>
     </div>
   );
 }

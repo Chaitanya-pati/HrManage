@@ -48,12 +48,11 @@ export default function Employees() {
 
             {showAddForm ? (
               <EmployeeForm 
-                departments={departments}
                 onCancel={() => setShowAddForm(false)}
                 onSuccess={() => setShowAddForm(false)}
               />
             ) : (
-              <EmployeeList employees={employees} isLoading={isLoading} />
+              <EmployeeList employees={employees as any[]} isLoading={isLoading} />
             )}
           </div>
         </main>
