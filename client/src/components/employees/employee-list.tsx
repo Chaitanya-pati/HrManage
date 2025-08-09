@@ -264,7 +264,14 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                     </TableCell>
 
                     <TableCell className="py-4">
-                      {getStatusBadge(employee.status)}
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {employee.department?.name || 'Unassigned'}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {employee.department?.description || ''}
+                        </p>
+                      </div>
                     </TableCell>
 
                     <TableCell className="py-4">

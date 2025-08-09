@@ -675,16 +675,21 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
 
                   <div className="space-y-2">
                     <Label htmlFor="shiftId">Assigned Shift</Label>
-                    <Select onValueChange={(value) => setValue("shiftId", value)}>
+                    <Select onValueChange={(value) => setValue("shiftId", value)} defaultValue="">
                       <SelectTrigger>
                         <SelectValue placeholder="Select shift" />
                       </SelectTrigger>
                       <SelectContent>
-                        {shifts.map((shift: any) => (
-                          <SelectItem key={shift.id} value={shift.id}>
-                            {shift.name} ({shift.startTime} - {shift.endTime})
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="no-shift">No Shift Assigned</SelectItem>
+                        {shifts && shifts.length > 0 ? (
+                          shifts.map((shift: any) => (
+                            <SelectItem key={shift.id} value={shift.id}>
+                              {shift.name} ({shift.startTime} - {shift.endTime})
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="loading" disabled>Loading shifts...</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

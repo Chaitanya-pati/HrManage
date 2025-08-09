@@ -150,9 +150,40 @@ export class MemStorage implements IStorage {
 
     // Create sample shifts
     const shiftData = [
-      { name: "Morning", startTime: "08:00", endTime: "16:00" },
-      { name: "Afternoon", startTime: "16:00", endTime: "00:00" },
-      { name: "Night", startTime: "00:00", endTime: "08:00" },
+      { 
+        name: "Day Shift", 
+        startTime: "09:00", 
+        endTime: "17:00",
+        breakDuration: 60,
+        standardHours: "8.0",
+        graceTime: 10,
+        isFlexible: false,
+        isRotating: false,
+        isNightShift: false
+      },
+      { 
+        name: "Night Shift", 
+        startTime: "22:00", 
+        endTime: "06:00",
+        breakDuration: 60,
+        standardHours: "8.0",
+        graceTime: 10,
+        isFlexible: false,
+        isRotating: false,
+        isNightShift: true,
+        nightShiftAllowance: "500"
+      },
+      { 
+        name: "Morning Shift", 
+        startTime: "06:00", 
+        endTime: "14:00",
+        breakDuration: 60,
+        standardHours: "8.0",
+        graceTime: 10,
+        isFlexible: false,
+        isRotating: false,
+        isNightShift: false
+      },
     ];
 
     shiftData.forEach((shift, index) => {
@@ -162,6 +193,21 @@ export class MemStorage implements IStorage {
         name: shift.name,
         startTime: shift.startTime,
         endTime: shift.endTime,
+        breakDuration: shift.breakDuration,
+        standardHours: shift.standardHours,
+        graceTime: shift.graceTime,
+        lateArrivalPenalty: "0",
+        earlyDeparturePenalty: "0",
+        halfDayThreshold: "4.0",
+        isFlexible: shift.isFlexible,
+        isRotating: shift.isRotating,
+        isNightShift: shift.isNightShift,
+        nightShiftAllowance: shift.nightShiftAllowance || "0",
+        overtimeThreshold: "8.0",
+        maxOvertimePerDay: "4.0",
+        weeklyOffPattern: "saturday,sunday",
+        workingDaysPerWeek: 5,
+        holidayWorkingRate: "2.0",
         createdAt: new Date(),
       });
     });
