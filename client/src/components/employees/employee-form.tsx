@@ -117,9 +117,44 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
     queryKey: ["/api/employees"],
   });
 
-  const { data: shifts = [] } = useQuery({
-    queryKey: ["/api/shifts"],
-  });
+  // Hardcoded shifts data
+  const shifts = [
+    {
+      id: "shift-1",
+      name: "Day Shift",
+      startTime: "09:00",
+      endTime: "17:00",
+      description: "Regular office hours"
+    },
+    {
+      id: "shift-2", 
+      name: "Morning Shift",
+      startTime: "06:00",
+      endTime: "14:00",
+      description: "Early morning shift"
+    },
+    {
+      id: "shift-3",
+      name: "Evening Shift", 
+      startTime: "14:00",
+      endTime: "22:00",
+      description: "Afternoon to evening"
+    },
+    {
+      id: "shift-4",
+      name: "Night Shift",
+      startTime: "22:00", 
+      endTime: "06:00",
+      description: "Night hours"
+    },
+    {
+      id: "shift-5",
+      name: "Flexible Hours",
+      startTime: "Flexible",
+      endTime: "Flexible", 
+      description: "Work from home/flexible timing"
+    }
+  ];
 
   const { data: clientSites = [] } = useQuery({
     queryKey: ["/api/client-sites"],
@@ -717,15 +752,11 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="no-shift">No Shift Assigned</SelectItem>
-                        {shifts && (shifts as any[]).length > 0 ? (
-                          (shifts as any[]).map((shift: any) => (
-                            <SelectItem key={shift.id} value={shift.id}>
-                              {shift.name} ({shift.startTime} - {shift.endTime})
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-2 py-1.5 text-sm text-gray-500">Loading shifts...</div>
-                        )}
+                        {shifts.map((shift) => (
+                          <SelectItem key={shift.id} value={shift.id}>
+                            {shift.name} ({shift.startTime} - {shift.endTime})
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
