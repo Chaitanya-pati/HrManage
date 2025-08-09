@@ -267,7 +267,7 @@ export const payroll = pgTable("payroll", {
   esiDeduction: decimal("esi_deduction", { precision: 10, scale: 2 }).default("0"),
   esiEmployerContribution: decimal("esi_employer_contribution", { precision: 10, scale: 2 }).default("0"),
   professionalTax: decimal("professional_tax", { precision: 10, scale: 2 }).default("0"),
-  incomeTax: decimal("income_tax", { precision: 10, scale, 2 }).default("0"),
+  incomeTax: decimal("income_tax", { precision: 10, scale: 2 }).default("0"),
   
   // Other Deductions
   loanDeduction: decimal("loan_deduction", { precision: 10, scale: 2 }).default("0"),
