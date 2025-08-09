@@ -186,7 +186,7 @@ export default function Attendance() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Daily Attendance - Biometric Tracking</CardTitle>
+                    <CardTitle>Daily Attendance - Biometric & Field Work Tracking</CardTitle>
                     <div className="flex items-center space-x-4">
                       <Input
                         type="date"
@@ -195,6 +195,18 @@ export default function Attendance() {
                         className="w-auto"
                         data-testid="date-picker"
                       />
+                      <Select defaultValue="all">
+                        <SelectTrigger className="w-40" data-testid="work-location-filter">
+                          <SelectValue placeholder="Work Location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Locations</SelectItem>
+                          <SelectItem value="office">Office</SelectItem>
+                          <SelectItem value="field">Field Work</SelectItem>
+                          <SelectItem value="client_site">Client Site</SelectItem>
+                          <SelectItem value="remote">Remote</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <Select defaultValue="all">
                         <SelectTrigger className="w-40" data-testid="department-filter">
                           <SelectValue placeholder="Department" />
@@ -220,12 +232,12 @@ export default function Attendance() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Employee</TableHead>
-                          <TableHead>Shift</TableHead>
-                          <TableHead>Gate Entry</TableHead>
+                          <TableHead>Shift & Location</TableHead>
+                          <TableHead>Biometric Entry/Exit</TableHead>
                           <TableHead>Check In/Out</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Hours</TableHead>
-                          <TableHead>Status</TableHead>
+                          <TableHead>Work Details</TableHead>
+                          <TableHead>Hours & OT</TableHead>
+                          <TableHead>Status & Approvals</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -250,20 +262,60 @@ export default function Attendance() {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge variant="outline">
-                                    {record.shiftId ? "Regular" : "Flexible"}
-                                  </Badge>
+                                  <div className="text-sm space-y-1">
+                                    <Badge variant="outline" className="text-xs">
+                                      {record.shiftId ? "Regular" : "Flexible"}
+                                    </Badge>
+                                    <div className="flex items-center space-x-1">
+                                      {record.workLocation === 'field' ? (
+                                        <>
+                                          <MapPin className="h-3 w-3 text-orange-500" />
+                                          <span className="text-xs">Field Work</span>
+                                        </>
+                                      ) : record.workLocation === 'client_site' ? (
+                                        <>
+                                          <MapPin className="h-3 w-3 text-purple-500" />
+                                          <span className="text-xs">Client Site</span>
+                                        </>
+                                      ) : record.isRemote ? (
+                                        <>
+                                          <Wifi className="h-3 w-3 text-blue-500" />
+                                          <span className="text-xs">Remote</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MapPin className="h-3 w-3 text-green-500" />
+                                          <span className="text-xs">Office</span>
+                                        </>
+                                      )}
+                                    </div>
+                                    {record.clientSite && (
+                                      <p className="text-xs text-gray-500">Client: {record.clientSite}</p>
+                                    )}
+                                  </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="text-sm">
+                                  <div className="text-sm space-y-1">
                                     <div className="flex items-center space-x-1">
                                       <Clock className="h-3 w-3" />
                                       <span>
-                                        {record.gateEntry ? new Date(record.gateEntry).toLocaleTimeString() : '-'}
+                                        Entry: {record.gateEntry ? new Date(record.gateEntry).toLocaleTimeString() : '-'}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center space-x-1">
+                                      <Clock className="h-3 w-3" />
+                                      <span>
+                                        Exit: {record.gateExit ? new Date(record.gateExit).toLocaleTimeString() : '-'}
                                       </span>
                                     </div>
                                     {record.biometricId && (
-                                      <p className="text-xs text-gray-500">ID: {record.biometricId.slice(-6)}</p>
+                                      <div className="flex items-center space-x-1">
+                                        {record.fingerprintVerified && <Badge variant="secondary" className="text-xs">Fingerprint</Badge>}
+                                        {record.faceRecognitionVerified && <Badge variant="secondary" className="text-xs">Face</Badge>}
+                                      </div>
+                                    )}
+                                    {record.biometricDeviceIn && (
+                                      <p className="text-xs text-gray-500">Device: {record.biometricDeviceIn.slice(-4)}</p>
                                     )}
                                   </div>
                                 </TableCell>
@@ -273,47 +325,126 @@ export default function Attendance() {
                                       <span className={isLate ? "text-orange-600" : "text-green-600"}>
                                         In: {record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : '-'}
                                       </span>
+                                      {record.lateArrival && (
+                                        <Badge variant="destructive" className="text-xs">Late</Badge>
+                                      )}
                                     </div>
                                     <div>
                                       Out: {record.checkOut ? new Date(record.checkOut).toLocaleTimeString() : '-'}
+                                      {record.earlyDeparture && (
+                                        <Badge variant="destructive" className="text-xs ml-1">Early</Badge>
+                                      )}
                                     </div>
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center space-x-1">
-                                    {record.isRemote ? (
-                                      <>
-                                        <Wifi className="h-3 w-3 text-blue-500" />
-                                        <span className="text-xs">Remote</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <MapPin className="h-3 w-3 text-green-500" />
-                                        <span className="text-xs">Office</span>
-                                      </>
+                                    {(record.lateArrivalMinutes > 0 || record.earlyDepartureMinutes > 0) && (
+                                      <p className="text-xs text-orange-600">
+                                        {record.lateArrivalMinutes > 0 && `Late: ${record.lateArrivalMinutes}min`}
+                                        {record.lateArrivalMinutes > 0 && record.earlyDepartureMinutes > 0 && ', '}
+                                        {record.earlyDepartureMinutes > 0 && `Early: ${record.earlyDepartureMinutes}min`}
+                                      </p>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <div className="text-sm">
-                                    <div className="font-medium">{record.hoursWorked || '0'}h</div>
+                                  <div className="text-sm space-y-1">
+                                    <div>
+                                      <span className="font-medium">Regular: </span>
+                                      <span>{parseFloat(record.regularHours || 0).toFixed(1)}h</span>
+                                    </div>
+                                    {parseFloat(record.fieldWorkHours || 0) > 0 && (
+                                      <div>
+                                        <span className="font-medium">Field: </span>
+                                        <span className="text-orange-600">{parseFloat(record.fieldWorkHours).toFixed(1)}h</span>
+                                      </div>
+                                    )}
+                                    {parseFloat(record.nightShiftHours || 0) > 0 && (
+                                      <div>
+                                        <span className="font-medium">Night: </span>
+                                        <span className="text-purple-600">{parseFloat(record.nightShiftHours).toFixed(1)}h</span>
+                                      </div>
+                                    )}
+                                    {parseFloat(record.travelDistance || 0) > 0 && (
+                                      <p className="text-xs text-gray-500">
+                                        Travel: {record.travelDistance}km ({record.travelMode})
+                                      </p>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="text-sm space-y-1">
+                                    <div>
+                                      <span className="font-medium">Total: </span>
+                                      <span>{record.hoursWorked || '0'}h</span>
+                                    </div>
                                     {parseFloat(record.overtimeHours || 0) > 0 && (
-                                      <div className="text-xs text-orange-600">
-                                        +{record.overtimeHours}h OT
+                                      <div className="space-y-1">
+                                        <div>
+                                          <span className="font-medium">OT: </span>
+                                          <span className="text-orange-600">{record.overtimeHours}h</span>
+                                          {!record.overtimeApproved && (
+                                            <Badge variant="outline" className="text-xs ml-1">Pending</Badge>
+                                          )}
+                                        </div>
+                                        {parseFloat(record.preShiftOvertime || 0) > 0 && (
+                                          <p className="text-xs text-gray-500">Pre: {record.preShiftOvertime}h</p>
+                                        )}
+                                        {parseFloat(record.postShiftOvertime || 0) > 0 && (
+                                          <p className="text-xs text-gray-500">Post: {record.postShiftOvertime}h</p>
+                                        )}
+                                        {parseFloat(record.weekendOvertime || 0) > 0 && (
+                                          <p className="text-xs text-gray-500">Weekend: {record.weekendOvertime}h</p>
+                                        )}
+                                        {parseFloat(record.holidayOvertime || 0) > 0 && (
+                                          <p className="text-xs text-gray-500">Holiday: {record.holidayOvertime}h</p>
+                                        )}
                                       </div>
                                     )}
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  <Badge 
-                                    variant={
-                                      record.status === 'present' ? 'default' :
-                                      record.status === 'late' ? 'secondary' :
-                                      'destructive'
-                                    }
-                                  >
-                                    {record.status}
-                                  </Badge>
+                                  <div className="space-y-1">
+                                    <Badge 
+                                      variant={
+                                        record.status === 'present' ? 'default' :
+                                        record.status === 'late' ? 'secondary' :
+                                        record.status === 'half_day' ? 'outline' :
+                                        'destructive'
+                                      }
+                                    >
+                                      {record.status}
+                                    </Badge>
+                                    
+                                    <div className="flex flex-wrap gap-1">
+                                      {record.isFieldWork && (
+                                        <Badge 
+                                          variant={record.fieldWorkApproved ? "default" : "outline"} 
+                                          className="text-xs"
+                                        >
+                                          Field {record.fieldWorkApproved ? '✓' : '⏳'}
+                                        </Badge>
+                                      )}
+                                      
+                                      {parseFloat(record.overtimeHours || 0) > 0 && (
+                                        <Badge 
+                                          variant={record.overtimeApproved ? "default" : "outline"} 
+                                          className="text-xs"
+                                        >
+                                          OT {record.overtimeApproved ? '✓' : '⏳'}
+                                        </Badge>
+                                      )}
+                                      
+                                      {record.geoFenceStatus === 'outside' && (
+                                        <Badge variant="destructive" className="text-xs">
+                                          Outside Zone
+                                        </Badge>
+                                      )}
+                                      
+                                      {record.fingerprintVerified && record.faceRecognitionVerified && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Bio Verified
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
                                 </TableCell>
                               </TableRow>
                             );

@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { 
-  insertEmployeeSchema, 
+import {
+  insertEmployeeSchema,
   insertDepartmentSchema,
   insertAttendanceSchema,
   insertLeaveSchema,
@@ -40,9 +40,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid department data", errors: result.error.errors });
       }
-      
+
       const department = await storage.createDepartment(result.data);
-      
+
       await storage.createActivity({
         type: "department",
         title: "New department created",
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: department.id,
         userId: null,
       });
-      
+
       res.status(201).json(department);
     } catch (error) {
       console.error("Error creating department:", error);
@@ -66,12 +66,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid department data", errors: result.error.errors });
       }
-      
+
       const department = await storage.updateDepartment(id, result.data);
       if (!department) {
         return res.status(404).json({ message: "Department not found" });
       }
-      
+
       res.json(department);
     } catch (error) {
       console.error("Error updating department:", error);
@@ -86,7 +86,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ message: "Department not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting department:", error);
@@ -125,15 +125,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid employee data", errors: result.error.errors });
       }
-      
+
       // Check if email already exists
       const existingEmployee = await storage.getEmployeeByEmail(result.data.email);
       if (existingEmployee) {
         return res.status(400).json({ message: "Employee with this email already exists" });
       }
-      
+
       const employee = await storage.createEmployee(result.data);
-      
+
       await storage.createActivity({
         type: "employee",
         title: "New employee added",
@@ -142,7 +142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: employee.id,
         userId: null,
       });
-      
+
       res.status(201).json(employee);
     } catch (error) {
       console.error("Error creating employee:", error);
@@ -157,12 +157,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid employee data", errors: result.error.errors });
       }
-      
+
       const employee = await storage.updateEmployee(id, result.data);
       if (!employee) {
         return res.status(404).json({ message: "Employee not found" });
       }
-      
+
       res.json(employee);
     } catch (error) {
       console.error("Error updating employee:", error);
@@ -177,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!success) {
         return res.status(404).json({ message: "Employee not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       console.error("Error deleting employee:", error);
@@ -190,11 +190,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { employeeId, startDate, endDate } = req.query;
       const filters: any = {};
-      
+
       if (employeeId) filters.employeeId = employeeId as string;
       if (startDate) filters.startDate = new Date(startDate as string);
       if (endDate) filters.endDate = new Date(endDate as string);
-      
+
       const attendance = await storage.getAttendance(filters);
       res.json(attendance);
     } catch (error) {
@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
       }
-      
+
       const attendance = await storage.createAttendance(result.data);
       res.status(201).json(attendance);
     } catch (error) {
@@ -218,15 +218,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertAttendanceSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
+      }
+
+      const attendance = await storage.updateAttendance(id, result.data);
+      if (!attendance) {
+        return res.status(404).json({ message: "Attendance not found" });
+      }
+
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // Client Sites
+  app.get("/api/client-sites", async (req, res) => {
+    try {
+      const clientSites = await storage.getClientSites();
+      res.json(clientSites);
+    } catch (error) {
+      console.error("Error fetching client sites:", error);
+      res.status(500).json({ message: "Failed to fetch client sites" });
+    }
+  });
+
+  app.post("/api/client-sites", async (req, res) => {
+    try {
+      const clientSite = await storage.createClientSite(req.body);
+      res.status(201).json(clientSite);
+    } catch (error) {
+      console.error("Error creating client site:", error);
+      res.status(500).json({ message: "Failed to create client site" });
+    }
+  });
+
+  // Biometric Devices
+  app.get("/api/biometric-devices", async (req, res) => {
+    try {
+      const devices = await storage.getBiometricDevices();
+      res.json(devices);
+    } catch (error) {
+      console.error("Error fetching biometric devices:", error);
+      res.status(500).json({ message: "Failed to fetch biometric devices" });
+    }
+  });
+
+  app.post("/api/biometric-devices", async (req, res) => {
+    try {
+      const device = await storage.createBiometricDevice(req.body);
+      res.status(201).json(device);
+    } catch (error) {
+      console.error("Error creating biometric device:", error);
+      res.status(500).json({ message: "Failed to create biometric device" });
+    }
+  });
+
+  // Biometric punch data endpoint
+  app.post("/api/biometric/punch", async (req, res) => {
+    try {
+      const { deviceId, employeeId, biometricId, punchTime, punchType } = req.body;
+
+      // Verify biometric device
+      const device = await storage.getBiometricDevice(deviceId);
+      if (!device || !device.isActive) {
+        return res.status(400).json({ message: "Invalid or inactive biometric device" });
+      }
+
+      // Process biometric punch
+      const attendance = await storage.processBiometricPunch({
+        deviceId,
+        employeeId,
+        biometricId,
+        punchTime: new Date(punchTime),
+        punchType, // IN, OUT
+        location: device.location,
+        clientSiteId: device.clientSiteId
+      });
+
+      res.json({ success: true, attendance });
+    } catch (error) {
+      console.error("Error processing biometric punch:", error);
+      res.status(500).json({ message: "Failed to process biometric punch" });
+    }
+  });
+
+  // Overtime Requests
+  app.get("/api/overtime-requests", async (req, res) => {
+    try {
+      const { employeeId, status } = req.query;
+      const filters: any = {};
+
+      if (employeeId) filters.employeeId = employeeId as string;
+      if (status) filters.status = status as string;
+
+      const overtimeRequests = await storage.getOvertimeRequests(filters);
+      res.json(overtimeRequests);
+    } catch (error) {
+      console.error("Error fetching overtime requests:", error);
+      res.status(500).json({ message: "Failed to fetch overtime requests" });
+    }
+  });
+
+  app.post("/api/overtime-requests", async (req, res) => {
+    try {
+      const overtimeRequest = await storage.createOvertimeRequest(req.body);
+      res.status(201).json(overtimeRequest);
+    } catch (error) {
+      console.error("Error creating overtime request:", error);
+      res.status(500).json({ message: "Failed to create overtime request" });
+    }
+  });
+
+  app.patch("/api/overtime-requests/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, approvedBy, rejectionReason } = req.body;
+
+      const overtimeRequest = await storage.updateOvertimeRequest(id, {
+        status,
+        approvedBy,
+        rejectionReason,
+        approvedAt: status === 'approved' ? new Date() : null
+      });
+
+      if (!overtimeRequest) {
+        return res.status(404).json({ message: "Overtime request not found" });
+      }
+
+      res.json(overtimeRequest);
+    } catch (error) {
+      console.error("Error updating overtime request:", error);
+      res.status(500).json({ message: "Failed to update overtime request" });
+    }
+  });
+
+  // Shifts
+  app.get("/api/shifts", async (req, res) => {
+    try {
+      const shifts = await storage.getShifts();
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      res.status(500).json({ message: "Failed to fetch shifts" });
+    }
+  });
+
+  app.post("/api/shifts", async (req, res) => {
+    try {
+      const shift = await storage.createShift(req.body);
+      res.status(201).json(shift);
+    } catch (error) {
+      console.error("Error creating shift:", error);
+      res.status(500).json({ message: "Failed to create shift" });
+    }
+  });
+
+
   // Leaves
   app.get("/api/leaves", async (req, res) => {
     try {
       const { employeeId, status } = req.query;
       const filters: any = {};
-      
+
       if (employeeId) filters.employeeId = employeeId as string;
       if (status) filters.status = status as string;
-      
+
       const leaves = await storage.getLeaves(filters);
       res.json(leaves);
     } catch (error) {
@@ -241,9 +404,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid leave data", errors: result.error.errors });
       }
-      
+
       const leave = await storage.createLeave(result.data);
-      
+
       await storage.createActivity({
         type: "leave",
         title: "Leave request submitted",
@@ -252,7 +415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         entityId: leave.id,
         userId: null,
       });
-      
+
       res.status(201).json(leave);
     } catch (error) {
       console.error("Error creating leave:", error);
@@ -267,12 +430,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid leave data", errors: result.error.errors });
       }
-      
+
       const leave = await storage.updateLeave(id, result.data);
       if (!leave) {
         return res.status(404).json({ message: "Leave not found" });
       }
-      
+
       if (result.data.status && ["approved", "rejected"].includes(result.data.status)) {
         await storage.createActivity({
           type: "leave",
@@ -283,7 +446,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: null,
         });
       }
-      
+
       res.json(leave);
     } catch (error) {
       console.error("Error updating leave:", error);
@@ -296,11 +459,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { employeeId, month, year } = req.query;
       const filters: any = {};
-      
+
       if (employeeId) filters.employeeId = employeeId as string;
       if (month) filters.month = parseInt(month as string);
       if (year) filters.year = parseInt(year as string);
-      
+
       const payroll = await storage.getPayroll(filters);
       res.json(payroll);
     } catch (error) {
@@ -315,7 +478,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid payroll data", errors: result.error.errors });
       }
-      
+
       const payroll = await storage.createPayroll(result.data);
       res.status(201).json(payroll);
     } catch (error) {
@@ -329,10 +492,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { employeeId, year } = req.query;
       const filters: any = {};
-      
+
       if (employeeId) filters.employeeId = employeeId as string;
       if (year) filters.year = parseInt(year as string);
-      
+
       const performance = await storage.getPerformance(filters);
       res.json(performance);
     } catch (error) {
@@ -347,7 +510,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!result.success) {
         return res.status(400).json({ message: "Invalid performance data", errors: result.error.errors });
       }
-      
+
       const performance = await storage.createPerformance(result.data);
       res.status(201).json(performance);
     } catch (error) {
