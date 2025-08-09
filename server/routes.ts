@@ -8,7 +8,8 @@ import {
   insertLeaveSchema,
   insertPayrollSchema,
   insertPerformanceSchema,
-  insertActivitySchema
+  insertActivitySchema,
+  insertShiftSchema // Assuming insertShiftSchema is defined elsewhere and imported
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -363,6 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/shifts", async (req, res) => {
     try {
       const shifts = await storage.getShifts();
+      console.log("Fetched shifts:", shifts); // Debug log
       res.json(shifts);
     } catch (error) {
       console.error("Error fetching shifts:", error);
@@ -372,7 +374,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/shifts", async (req, res) => {
     try {
-      const shift = await storage.createShift(req.body);
+      const result = insertShiftSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid shift data", errors: result.error.errors });
+      }
+
+      const shift = await storage.createShift(result.data);
+
+      await storage.createActivity({
+        type: "shift",
+        title: "New shift created",
+        description: `${shift.name} shift was created`,
+        entityType: "shift",
+        entityId: shift.id,
+        userId: null,
+      });
+
       res.status(201).json(shift);
     } catch (error) {
       console.error("Error creating shift:", error);

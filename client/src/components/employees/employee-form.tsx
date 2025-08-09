@@ -675,7 +675,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
 
                   <div className="space-y-2">
                     <Label htmlFor="shiftId">Assigned Shift</Label>
-                    <Select onValueChange={(value) => setValue("shiftId", value)} defaultValue="">
+                    <Select onValueChange={(value) => setValue("shiftId", value === "no-shift" ? "" : value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select shift" />
                       </SelectTrigger>
@@ -688,7 +688,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="loading" disabled>Loading shifts...</SelectItem>
+                          <div className="px-2 py-1.5 text-sm text-gray-500">Loading shifts...</div>
                         )}
                       </SelectContent>
                     </Select>
