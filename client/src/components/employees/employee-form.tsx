@@ -227,6 +227,8 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
   });
 
   const onSubmit = (data: EmployeeFormData) => {
+    console.log("Form submitted with data:", data);
+    console.log("Form errors:", errors);
     createEmployeeMutation.mutate(data);
   };
 
@@ -1131,7 +1133,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                   type="button"
                   variant="outline"
                   onClick={prevStep}
-                  disabled={isSubmitting}
+                  disabled={createEmployeeMutation.isPending}
                   data-testid="button-previous"
                 >
                   Previous
@@ -1144,7 +1146,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 type="button"
                 variant="ghost"
                 onClick={onCancel}
-                disabled={isSubmitting}
+                disabled={createEmployeeMutation.isPending}
                 data-testid="button-cancel"
               >
                 Cancel
@@ -1154,7 +1156,7 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
                 <Button
                   type="button"
                   onClick={nextStep}
-                  disabled={isSubmitting}
+                  disabled={createEmployeeMutation.isPending}
                   data-testid="button-next"
                 >
                   Next
@@ -1162,10 +1164,10 @@ export default function EmployeeForm({ employee, onSuccess, onCancel }: Employee
               ) : (
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={createEmployeeMutation.isPending}
                   data-testid="button-save-employee"
                 >
-                  {isSubmitting ? "Saving..." : (employee ? "Update Employee" : "Save Employee")}
+                  {createEmployeeMutation.isPending ? "Saving..." : (employee ? "Update Employee" : "Save Employee")}
                 </Button>
               )}
             </div>
