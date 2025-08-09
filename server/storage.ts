@@ -113,7 +113,7 @@ export class MemStorage implements IStorage {
     ];
 
     const departmentArray = Array.from(this.departments.values());
-    
+
     employeeData.forEach((emp, index) => {
       const dept = departmentArray.find(d => d.name === emp.department);
       const id = randomUUID();
@@ -142,20 +142,20 @@ export class MemStorage implements IStorage {
     // Create sample attendance records
     const employees = Array.from(this.employees.values());
     const today = new Date();
-    
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      
+
       employees.forEach(emp => {
         if (Math.random() > 0.1) { // 90% attendance rate
           const id = randomUUID();
           const checkIn = new Date(date);
           checkIn.setHours(9, Math.floor(Math.random() * 30));
-          
+
           const checkOut = new Date(checkIn);
           checkOut.setHours(17, Math.floor(Math.random() * 60));
-          
+
           this.attendance.set(id, {
             id,
             employeeId: emp.id,
@@ -183,7 +183,7 @@ export class MemStorage implements IStorage {
       const id = randomUUID();
       const createdAt = new Date();
       createdAt.setHours(createdAt.getHours() - (index + 1) * 2);
-      
+
       this.activities.set(id, {
         id,
         type: activity.type,
@@ -237,7 +237,7 @@ export class MemStorage implements IStorage {
   async updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined> {
     const department = this.departments.get(id);
     if (!department) return undefined;
-    
+
     const updated = { ...department, ...updates };
     this.departments.set(id, updated);
     return updated;
@@ -260,7 +260,7 @@ export class MemStorage implements IStorage {
   async getEmployee(id: string): Promise<EmployeeWithDepartment | undefined> {
     const employee = this.employees.get(id);
     if (!employee) return undefined;
-    
+
     return {
       ...employee,
       department: employee.departmentId ? this.departments.get(employee.departmentId) : undefined,
@@ -287,7 +287,7 @@ export class MemStorage implements IStorage {
   async updateEmployee(id: string, updates: Partial<InsertEmployee>): Promise<Employee | undefined> {
     const employee = this.employees.get(id);
     if (!employee) return undefined;
-    
+
     const updated = { ...employee, ...updates, updatedAt: new Date() };
     this.employees.set(id, updated);
     return updated;
@@ -300,19 +300,19 @@ export class MemStorage implements IStorage {
   // Attendance
   async getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]> {
     let attendance = Array.from(this.attendance.values());
-    
+
     if (filters?.employeeId) {
       attendance = attendance.filter(a => a.employeeId === filters.employeeId);
     }
-    
+
     if (filters?.startDate) {
       attendance = attendance.filter(a => a.date >= filters.startDate!);
     }
-    
+
     if (filters?.endDate) {
       attendance = attendance.filter(a => a.date <= filters.endDate!);
     }
-    
+
     return attendance.sort((a, b) => b.date.getTime() - a.date.getTime());
   }
 
@@ -331,7 +331,7 @@ export class MemStorage implements IStorage {
   async updateAttendance(id: string, updates: Partial<InsertAttendance>): Promise<Attendance | undefined> {
     const attendance = this.attendance.get(id);
     if (!attendance) return undefined;
-    
+
     const updated = { ...attendance, ...updates };
     this.attendance.set(id, updated);
     return updated;
@@ -340,15 +340,15 @@ export class MemStorage implements IStorage {
   // Leaves
   async getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]> {
     let leaves = Array.from(this.leaves.values());
-    
+
     if (filters?.employeeId) {
       leaves = leaves.filter(l => l.employeeId === filters.employeeId);
     }
-    
+
     if (filters?.status) {
       leaves = leaves.filter(l => l.status === filters.status);
     }
-    
+
     return leaves.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
@@ -368,7 +368,7 @@ export class MemStorage implements IStorage {
   async updateLeave(id: string, updates: Partial<InsertLeave>): Promise<Leave | undefined> {
     const leave = this.leaves.get(id);
     if (!leave) return undefined;
-    
+
     const updated = { ...leave, ...updates };
     if (updates.status === "approved" && !updated.approvedAt) {
       updated.approvedAt = new Date();
@@ -380,19 +380,19 @@ export class MemStorage implements IStorage {
   // Payroll
   async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> {
     let payroll = Array.from(this.payroll.values());
-    
+
     if (filters?.employeeId) {
       payroll = payroll.filter(p => p.employeeId === filters.employeeId);
     }
-    
+
     if (filters?.month) {
       payroll = payroll.filter(p => p.month === filters.month);
     }
-    
+
     if (filters?.year) {
       payroll = payroll.filter(p => p.year === filters.year);
     }
-    
+
     return payroll.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
@@ -412,7 +412,7 @@ export class MemStorage implements IStorage {
   async updatePayroll(id: string, updates: Partial<InsertPayroll>): Promise<Payroll | undefined> {
     const payroll = this.payroll.get(id);
     if (!payroll) return undefined;
-    
+
     const updated = { ...payroll, ...updates };
     if (updates.status === "processed" && !updated.processedAt) {
       updated.processedAt = new Date();
@@ -424,15 +424,15 @@ export class MemStorage implements IStorage {
   // Performance
   async getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]> {
     let performance = Array.from(this.performance.values());
-    
+
     if (filters?.employeeId) {
       performance = performance.filter(p => p.employeeId === filters.employeeId);
     }
-    
+
     if (filters?.year) {
       performance = performance.filter(p => p.year === filters.year);
     }
-    
+
     return performance.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
   }
 
@@ -452,7 +452,7 @@ export class MemStorage implements IStorage {
   async updatePerformance(id: string, updates: Partial<InsertPerformance>): Promise<Performance | undefined> {
     const performance = this.performance.get(id);
     if (!performance) return undefined;
-    
+
     const updated = { ...performance, ...updates };
     if (updates.status === "completed" && !updated.completedAt) {
       updated.completedAt = new Date();
@@ -490,7 +490,7 @@ export class MemStorage implements IStorage {
 
     const totalEmployees = employees.length;
     const activeEmployees = employees.filter(e => e.status === "active");
-    
+
     // Calculate today's attendance
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -499,10 +499,10 @@ export class MemStorage implements IStorage {
       attendanceDate.setHours(0, 0, 0, 0);
       return attendanceDate.getTime() === today.getTime();
     });
-    
+
     const activeToday = todayAttendance.length;
     const pendingLeaves = leaves.filter(l => l.status === "pending").length;
-    
+
     // Department distribution
     const departmentDistribution = departments.map(dept => ({
       name: dept.name,
@@ -515,13 +515,13 @@ export class MemStorage implements IStorage {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
       date.setHours(0, 0, 0, 0);
-      
+
       const dayAttendance = attendance.filter(a => {
         const attendanceDate = new Date(a.date);
         attendanceDate.setHours(0, 0, 0, 0);
         return attendanceDate.getTime() === date.getTime();
       });
-      
+
       const rate = activeEmployees.length > 0 ? (dayAttendance.length / activeEmployees.length) * 100 : 0;
       attendanceTrend.push({
         date: date.toLocaleDateString('en-US', { weekday: 'short' }),

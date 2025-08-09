@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -42,18 +42,22 @@ const getStatusVariant = (status: string): "default" | "secondary" | "destructiv
   }
 };
 
+// Helper function to get status badge
 const getStatusBadge = (status: string) => {
   switch (status) {
-    case 'active':
-      return 'bg-green-100 text-green-800';
-    case 'on_leave':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'inactive':
-      return 'bg-red-100 text-red-800';
+    case "active":
+      return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+    case "inactive":
+      return <Badge className="bg-red-100 text-red-800">Inactive</Badge>;
+    case "on_leave":
+      return <Badge className="bg-yellow-100 text-yellow-800">On Leave</Badge>;
+    case "terminated":
+      return <Badge className="bg-gray-100 text-gray-800">Terminated</Badge>;
     default:
-      return 'bg-gray-100 text-gray-800';
+      return <Badge className="bg-gray-100 text-gray-800">{status}</Badge>;
   }
 };
+
 
 const getStatusText = (status: string) => {
   switch (status) {
@@ -83,7 +87,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
   const [filterStatus, setFilterStatus] = useState("all");
 
   const filteredEmployees = employees.filter(employee => {
-    const matchesSearch = 
+    const matchesSearch =
       employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       employee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -197,7 +201,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No employees found</h3>
             <p className="text-gray-500">
-              {searchTerm || filterStatus !== "all" 
+              {searchTerm || filterStatus !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "Get started by adding your first employee"
               }
@@ -218,7 +222,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
               </TableHeader>
               <TableBody>
                 {filteredEmployees.map((employee) => (
-                  <TableRow 
+                  <TableRow
                     key={employee.id}
                     className="group hover:bg-gray-50/50 transition-colors"
                     data-testid={`employee-row-${employee.id}`}
@@ -226,7 +230,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                     <TableCell className="py-4">
                       <div className="flex items-center space-x-3">
                         <Avatar className="h-10 w-10">
-                          <AvatarImage 
+                          <AvatarImage
                             src={getAvatarUrl(employee.firstName, employee.lastName)}
                             alt={`${employee.firstName} ${employee.lastName}`}
                           />
@@ -251,21 +255,16 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                           {employee.position}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Since {new Date(employee.hireDate).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            year: 'numeric' 
+                          Since {new Date(employee.hireDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            year: 'numeric'
                           })}
                         </p>
                       </div>
                     </TableCell>
 
                     <TableCell className="py-4">
-                      <span 
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(employee.status)}`}
-                        data-testid={`employee-department-${employee.id}`}
-                      >
-                        {employee.department?.name || 'Unassigned'}
-                      </span>
+                      {getStatusBadge(employee.status)}
                     </TableCell>
 
                     <TableCell className="py-4">
@@ -288,8 +287,8 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                     </TableCell>
 
                     <TableCell className="py-4">
-                      <Badge 
-                        variant={getStatusVariant(employee.status)} 
+                      <Badge
+                        variant={getStatusVariant(employee.status)}
                         className="font-medium"
                         data-testid={`employee-status-${employee.id}`}
                       >
@@ -300,9 +299,9 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                     <TableCell className="py-4">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-8 w-8 p-0 group-hover:bg-gray-100"
                             data-testid={`employee-menu-${employee.id}`}
                           >
