@@ -6,7 +6,8 @@ import {
   type Leave, type InsertLeave,
   type Payroll, type InsertPayroll,
   type Performance, type InsertPerformance,
-  type Activity, type InsertActivity
+  type Activity, type InsertActivity,
+  type Shift, type InsertShift
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -30,6 +31,13 @@ export interface IStorage {
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined>;
   deleteEmployee(id: string): Promise<boolean>;
+
+  // Shifts
+  getShifts(): Promise<Shift[]>;
+  getShift(id: string): Promise<Shift | undefined>;
+  createShift(shift: InsertShift): Promise<Shift>;
+  updateShift(id: string, shift: Partial<InsertShift>): Promise<Shift | undefined>;
+  deleteShift(id: string): Promise<boolean>;
 
   // Attendance
   getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]>;
@@ -71,6 +79,7 @@ export class MemStorage implements IStorage {
   private users: Map<string, User> = new Map();
   private departments: Map<string, Department> = new Map();
   private employees: Map<string, Employee> = new Map();
+  private shifts: Map<string, Shift> = new Map();
   private attendance: Map<string, Attendance> = new Map();
   private leaves: Map<string, Leave> = new Map();
   private payroll: Map<string, Payroll> = new Map();
@@ -136,6 +145,24 @@ export class MemStorage implements IStorage {
         personalInfo: null,
         createdAt: new Date(),
         updatedAt: new Date(),
+      });
+    });
+
+    // Create sample shifts
+    const shiftData = [
+      { name: "Morning", startTime: "08:00", endTime: "16:00" },
+      { name: "Afternoon", startTime: "16:00", endTime: "00:00" },
+      { name: "Night", startTime: "00:00", endTime: "08:00" },
+    ];
+
+    shiftData.forEach((shift, index) => {
+      const id = randomUUID();
+      this.shifts.set(id, {
+        id,
+        name: shift.name,
+        startTime: shift.startTime,
+        endTime: shift.endTime,
+        createdAt: new Date(),
       });
     });
 
@@ -295,6 +322,39 @@ export class MemStorage implements IStorage {
 
   async deleteEmployee(id: string): Promise<boolean> {
     return this.employees.delete(id);
+  }
+
+  // Shifts
+  async getShifts(): Promise<Shift[]> {
+    return Array.from(this.shifts.values());
+  }
+
+  async getShift(id: string): Promise<Shift | undefined> {
+    return this.shifts.get(id);
+  }
+
+  async createShift(insertShift: InsertShift): Promise<Shift> {
+    const id = randomUUID();
+    const shift: Shift = { 
+      ...insertShift, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.shifts.set(id, shift);
+    return shift;
+  }
+
+  async updateShift(id: string, updates: Partial<InsertShift>): Promise<Shift | undefined> {
+    const shift = this.shifts.get(id);
+    if (!shift) return undefined;
+
+    const updated = { ...shift, ...updates };
+    this.shifts.set(id, updated);
+    return updated;
+  }
+
+  async deleteShift(id: string): Promise<boolean> {
+    return this.shifts.delete(id);
   }
 
   // Attendance
