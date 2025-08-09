@@ -30,7 +30,7 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
       email: "",
       phone: "",
       position: "",
-      departmentId: "",
+      departmentId: null,
       managerId: null,
       hireDate: new Date(),
       status: "active",
@@ -163,13 +163,17 @@ export default function EmployeeForm({ departments, onCancel, onSuccess }: Emplo
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Department</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                    <Select 
+                      onValueChange={(value) => field.onChange(value === "" ? null : value)} 
+                      value={field.value || ""}
+                    >
                       <FormControl>
                         <SelectTrigger data-testid="select-department">
-                          <SelectValue placeholder="Select department" />
+                          <SelectValue placeholder="Select a department" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
+                        <SelectItem value="">None (Unassigned)</SelectItem>
                         {departments.map((dept) => (
                           <SelectItem key={dept.id} value={dept.id}>
                             {dept.name}

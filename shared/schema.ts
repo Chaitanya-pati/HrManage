@@ -122,6 +122,10 @@ export const insertEmployeeSchema = createInsertSchema(employees).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  departmentId: z.string().nullable().optional(),
+  hireDate: z.union([z.date(), z.string()]).transform((val) => new Date(val)),
+  salary: z.string().transform((val) => val || "0"),
 });
 
 export const insertAttendanceSchema = createInsertSchema(attendance).omit({
