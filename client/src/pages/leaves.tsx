@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,8 @@ export default function LeavesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [halfDayType, setHalfDayType] = useState("");
+  
+  const queryClient = useQueryClient();
 
   const { data: employees } = useQuery({
     queryKey: ["/api/employees"],
@@ -112,7 +114,7 @@ export default function LeavesPage() {
         setIsHalfDay(false);
         setHalfDayType("");
         // Refresh the leave requests data
-        window.location.reload();
+        await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
       } else {
         alert("Failed to submit leave request");
       }
@@ -132,7 +134,7 @@ export default function LeavesPage() {
 
       if (response.ok) {
         alert("Leave request approved!");
-        window.location.reload();
+        await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
       } else {
         const error = await response.json();
         alert(`Failed to approve leave request: ${error.message}`);
@@ -153,7 +155,7 @@ export default function LeavesPage() {
 
       if (response.ok) {
         alert("Leave request rejected!");
-        window.location.reload();
+        await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
       } else {
         const error = await response.json();
         alert(`Failed to reject leave request: ${error.message}`);
