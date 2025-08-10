@@ -319,7 +319,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Batch process attendance records from external biometric system
       const results = [];
-      
+
       for (const record of employeeData) {
         const attendance = await storage.createAttendance({
           employeeId: record.employeeId,
@@ -338,7 +338,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           overtimeHours: record.overtimeHours || 0,
           location: record.location || 'office'
         });
-        
+
         results.push(attendance);
       }
 

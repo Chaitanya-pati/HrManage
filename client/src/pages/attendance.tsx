@@ -33,7 +33,25 @@ import {
 export default function Attendance() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [view, setView] = useState<"overview" | "timeclock" | "reports">("overview");
+  const [view, setView] = useState<"overview" | "timeclock" | "reports" | "entry">("overview");
+  
+  // Attendance entry form states
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedShiftId, setSelectedShiftId] = useState("");
+  const [workLocation, setWorkLocation] = useState("");
+  const [clientSite, setClientSite] = useState("");
+  const [checkInTime, setCheckInTime] = useState("");
+  const [checkOutTime, setCheckOutTime] = useState("");
+  const [gateEntryTime, setGateEntryTime] = useState("");
+  const [gateExitTime, setGateExitTime] = useState("");
+  const [attendanceStatus, setAttendanceStatus] = useState("present");
+  const [fingerprintVerified, setFingerprintVerified] = useState(false);
+  const [faceRecognitionVerified, setFaceRecognitionVerified] = useState(false);
+  const [overtimeHours, setOvertimeHours] = useState("");
+  const [travelDistance, setTravelDistance] = useState("");
+  const [travelMode, setTravelMode] = useState("");
+  const [attendanceNotes, setAttendanceNotes] = useState("");
 
   const { data: attendance = [], isLoading } = useQuery({
     queryKey: ["/api/attendance", { startDate: selectedDate, endDate: selectedDate }],
@@ -73,6 +91,92 @@ export default function Attendance() {
     new Date(att.date).toDateString() === new Date().toDateString()
   );
 
+  // Handler functions for attendance entry
+  const handleSubmitAttendance = async () => {
+    if (!selectedEmployeeId || !attendanceDate) {
+      alert("Please select an employee and date");
+      return;
+    }
+
+    const attendanceData = {
+      employeeId: selectedEmployeeId,
+      date: attendanceDate,
+      checkIn: checkInTime ? new Date(`${attendanceDate}T${checkInTime}:00`) : null,
+      checkOut: checkOutTime ? new Date(`${attendanceDate}T${checkOutTime}:00`) : null,
+      gateEntry: gateEntryTime ? `${attendanceDate}T${gateEntryTime}:00` : null,
+      gateExit: gateExitTime ? `${attendanceDate}T${gateExitTime}:00` : null,
+      status: attendanceStatus,
+      shiftId: selectedShiftId || null,
+      workLocation: workLocation || "office",
+      clientSite: clientSite || null,
+      isRemote: workLocation === "remote",
+      isFieldWork: workLocation === "field",
+      fingerprintVerified,
+      faceRecognitionVerified,
+      biometricId: fingerprintVerified || faceRecognitionVerified ? `BIO_${Date.now()}` : null,
+      overtimeHours: overtimeHours || "0",
+      travelDistance: travelDistance || null,
+      travelMode: travelMode || null,
+      notes: attendanceNotes || null,
+      hoursWorked: calculateHoursWorked(),
+    };
+
+    try {
+      const response = await fetch("/api/attendance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attendanceData),
+      });
+
+      if (response.ok) {
+        alert("Attendance saved successfully!");
+        handleClearForm();
+        // Refresh attendance data
+        window.location.reload();
+      } else {
+        alert("Failed to save attendance");
+      }
+    } catch (error) {
+      console.error("Error saving attendance:", error);
+      alert("Error saving attendance");
+    }
+  };
+
+  const handleClearForm = () => {
+    setSelectedEmployeeId("");
+    setAttendanceDate(new Date().toISOString().split('T')[0]);
+    setSelectedShiftId("");
+    setWorkLocation("");
+    setClientSite("");
+    setCheckInTime("");
+    setCheckOutTime("");
+    setGateEntryTime("");
+    setGateExitTime("");
+    setAttendanceStatus("present");
+    setFingerprintVerified(false);
+    setFaceRecognitionVerified(false);
+    setOvertimeHours("");
+    setTravelDistance("");
+    setTravelMode("");
+    setAttendanceNotes("");
+  };
+
+  const calculateHoursWorked = () => {
+    if (!checkInTime || !checkOutTime) return "0";
+    
+    const checkIn = new Date(`${attendanceDate}T${checkInTime}:00`);
+    const checkOut = new Date(`${attendanceDate}T${checkOutTime}:00`);
+    
+    if (checkOut <= checkIn) return "0";
+    
+    const diffMs = checkOut.getTime() - checkIn.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    
+    return diffHours.toFixed(2);
+  };
+
   // Calculate metrics
   const presentToday = attendance.filter(att => att.status === "present").length;
   const lateToday = attendance.filter(att => {
@@ -111,6 +215,7 @@ export default function Attendance() {
                   <SelectContent>
                     <SelectItem value="overview">Overview</SelectItem>
                     <SelectItem value="timeclock">Time Clock</SelectItem>
+                    <SelectItem value="entry">Manual Entry</SelectItem>
                     <SelectItem value="reports">Reports</SelectItem>
                   </SelectContent>
                 </Select>
@@ -254,6 +359,265 @@ export default function Attendance() {
               <div className="flex justify-center">
                 <TimeClock employee={currentEmployee} attendance={todayAttendance} />
               </div>
+            )}
+
+            {/* Manual Attendance Entry Section */}
+            {view === "entry" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <UserCheck className="h-5 w-5" />
+                    <span>Manual Attendance Entry</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Employee Selection */}
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium">Select Employee</label>
+                        <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose an employee" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {employees.map((emp) => (
+                              <SelectItem key={emp.id} value={emp.id}>
+                                <div className="flex items-center space-x-2">
+                                  <img
+                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.firstName}${emp.lastName}&size=24`}
+                                    alt="Avatar"
+                                    className="w-6 h-6 rounded-full"
+                                  />
+                                  <span>{emp.firstName} {emp.lastName} ({emp.employeeId})</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Date Selection */}
+                      <div>
+                        <label className="text-sm font-medium">Date</label>
+                        <Input
+                          type="date"
+                          value={attendanceDate}
+                          onChange={(e) => setAttendanceDate(e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+
+                      {/* Shift Selection */}
+                      <div>
+                        <label className="text-sm font-medium">Shift</label>
+                        <Select value={selectedShiftId} onValueChange={setSelectedShiftId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select shift" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="flexible">Flexible Hours</SelectItem>
+                            {shifts.map((shift) => (
+                              <SelectItem key={shift.id} value={shift.id}>
+                                {shift.name} ({shift.startTime} - {shift.endTime})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Work Location */}
+                      <div>
+                        <label className="text-sm font-medium">Work Location</label>
+                        <Select value={workLocation} onValueChange={setWorkLocation}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select work location" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="office">Office</SelectItem>
+                            <SelectItem value="remote">Remote</SelectItem>
+                            <SelectItem value="field">Field Work</SelectItem>
+                            <SelectItem value="client_site">Client Site</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {workLocation === 'client_site' && (
+                        <div>
+                          <label className="text-sm font-medium">Client Site</label>
+                          <Input
+                            placeholder="Enter client site name"
+                            value={clientSite}
+                            onChange={(e) => setClientSite(e.target.value)}
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Attendance Details */}
+                    <div className="space-y-4">
+                      {/* Check In/Out Times */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Check In Time</label>
+                          <Input
+                            type="time"
+                            value={checkInTime}
+                            onChange={(e) => setCheckInTime(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Check Out Time</label>
+                          <Input
+                            type="time"
+                            value={checkOutTime}
+                            onChange={(e) => setCheckOutTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Biometric Gate Times */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium">Gate Entry Time</label>
+                          <Input
+                            type="time"
+                            value={gateEntryTime}
+                            onChange={(e) => setGateEntryTime(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium">Gate Exit Time</label>
+                          <Input
+                            type="time"
+                            value={gateExitTime}
+                            onChange={(e) => setGateExitTime(e.target.value)}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Status Selection */}
+                      <div>
+                        <label className="text-sm font-medium">Attendance Status</label>
+                        <Select value={attendanceStatus} onValueChange={setAttendanceStatus}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="present">Present</SelectItem>
+                            <SelectItem value="late">Late</SelectItem>
+                            <SelectItem value="half_day">Half Day</SelectItem>
+                            <SelectItem value="absent">Absent</SelectItem>
+                            <SelectItem value="on_leave">On Leave</SelectItem>
+                            <SelectItem value="holiday">Holiday</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Biometric Verification */}
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Biometric Verification</label>
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="fingerprintVerified"
+                              checked={fingerprintVerified}
+                              onChange={(e) => setFingerprintVerified(e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor="fingerprintVerified" className="text-sm">Fingerprint</label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="faceRecognitionVerified"
+                              checked={faceRecognitionVerified}
+                              onChange={(e) => setFaceRecognitionVerified(e.target.checked)}
+                              className="rounded border-gray-300"
+                            />
+                            <label htmlFor="faceRecognitionVerified" className="text-sm">Face Recognition</label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Overtime Hours */}
+                      <div>
+                        <label className="text-sm font-medium">Overtime Hours</label>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          placeholder="0.0"
+                          value={overtimeHours}
+                          onChange={(e) => setOvertimeHours(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Travel Information (for field work) */}
+                      {workLocation === 'field' && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium">Travel Distance (km)</label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={travelDistance}
+                              onChange={(e) => setTravelDistance(e.target.value)}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium">Travel Mode</label>
+                            <Select value={travelMode} onValueChange={setTravelMode}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select mode" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="car">Car</SelectItem>
+                                <SelectItem value="bike">Bike</SelectItem>
+                                <SelectItem value="public_transport">Public Transport</SelectItem>
+                                <SelectItem value="walking">Walking</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      <div>
+                        <label className="text-sm font-medium">Notes</label>
+                        <textarea
+                          className="w-full p-2 border border-gray-300 rounded-md resize-none"
+                          rows={3}
+                          placeholder="Any additional notes..."
+                          value={attendanceNotes}
+                          onChange={(e) => setAttendanceNotes(e.target.value)}
+                        />
+                      </div>
+
+                      {/* Submit Button */}
+                      <div className="flex space-x-2">
+                        <Button 
+                          onClick={handleSubmitAttendance}
+                          disabled={!selectedEmployeeId || !attendanceDate}
+                          className="flex-1"
+                        >
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Save Attendance
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={handleClearForm}
+                          className="px-4"
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* Advanced Attendance Table */}
