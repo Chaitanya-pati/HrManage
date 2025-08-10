@@ -22,12 +22,12 @@ export default function OrganizationPage() {
   });
 
   const getEmployeesByDepartment = (departmentId: string) => {
-    return employees?.filter(emp => emp.departmentId === departmentId) || [];
+    return (employees as any[])?.filter((emp: any) => emp.departmentId === departmentId) || [];
   };
 
   const getDepartmentHead = (departmentId: string) => {
     const deptEmployees = getEmployeesByDepartment(departmentId);
-    return deptEmployees.find(emp => emp.position.toLowerCase().includes('manager') || 
+    return deptEmployees.find((emp: any) => emp.position.toLowerCase().includes('manager') || 
                                emp.position.toLowerCase().includes('head') ||
                                emp.position.toLowerCase().includes('director'));
   };
