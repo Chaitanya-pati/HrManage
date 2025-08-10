@@ -208,7 +208,9 @@ export const leaves = pgTable("leaves", {
   type: text("type").notNull(),
   startDate: timestamp("start_date").notNull(),
   endDate: timestamp("end_date").notNull(),
-  days: integer("days").notNull(),
+  days: decimal("days", { precision: 4, scale: 1 }).notNull(), // Changed to support 0.5 days
+  isHalfDay: boolean("is_half_day").default(false),
+  halfDayType: text("half_day_type"), // "morning" or "evening"
   reason: text("reason").notNull(),
   status: text("status").notNull().default("pending"),
   approvedBy: varchar("approved_by").references(() => employees.id),
@@ -472,6 +474,10 @@ export const insertLeaveSchema = createInsertSchema(leaves).omit({
   id: true,
   createdAt: true,
   approvedAt: true,
+}).extend({
+  startDate: z.string().or(z.date()).transform((val) => new Date(val)),
+  endDate: z.string().or(z.date()).transform((val) => new Date(val)),
+  days: z.number().or(z.string().transform((val) => parseFloat(val))),
 });
 
 export const insertPayrollSchema = createInsertSchema(payroll).omit({

@@ -779,7 +779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/leaves/:id", async (req, res) => {
+  app.patch("/api/leaves/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertLeaveSchema.partial().safeParse(req.body);

@@ -5,7 +5,7 @@ import Header from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,6 +20,8 @@ export default function LeavesPage() {
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
   const [selectedEmployee, setSelectedEmployee] = useState("");
+  const [isHalfDay, setIsHalfDay] = useState(false);
+  const [halfDayType, setHalfDayType] = useState("");
 
   const { data: employees } = useQuery({
     queryKey: ["/api/employees"],
@@ -33,6 +35,8 @@ export default function LeavesPage() {
       startDate: "2024-02-15",
       endDate: "2024-02-20",
       days: 5,
+      isHalfDay: false,
+      halfDayType: null,
       reason: "Family vacation",
       status: "pending"
     },
@@ -41,8 +45,10 @@ export default function LeavesPage() {
       employeeId: employees?.[1]?.id || "2", 
       type: "Sick Leave",
       startDate: "2024-02-10",
-      endDate: "2024-02-12",
-      days: 2,
+      endDate: "2024-02-10",
+      days: 0.5,
+      isHalfDay: true,
+      halfDayType: "morning",
       reason: "Medical appointment",
       status: "approved"
     },
@@ -52,9 +58,23 @@ export default function LeavesPage() {
       type: "Personal Leave", 
       startDate: "2024-02-25",
       endDate: "2024-02-25",
-      days: 1,
+      days: 0.5,
+      isHalfDay: true,
+      halfDayType: "evening",
       reason: "Personal matters",
       status: "rejected"
+    },
+    {
+      id: "4",
+      employeeId: employees?.[0]?.id || "1",
+      type: "Emergency Leave",
+      startDate: "2024-03-01",
+      endDate: "2024-03-01",
+      days: 1,
+      isHalfDay: false,
+      halfDayType: null,
+      reason: "Family emergency",
+      status: "approved"
     }
   ];
 
@@ -82,6 +102,11 @@ export default function LeavesPage() {
     const end = new Date(endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    
+    // If it's a half day, return 0.5 for single day, otherwise calculate normally
+    if (isHalfDay && diffDays === 1) {
+      return 0.5;
+    }
     return diffDays;
   };
 
@@ -91,12 +116,24 @@ export default function LeavesPage() {
       return;
     }
 
+    if (isHalfDay && !halfDayType) {
+      alert("Please select half day type (Morning or Evening)");
+      return;
+    }
+
+    if (isHalfDay && startDate !== endDate) {
+      alert("Half day leave must be for a single day only");
+      return;
+    }
+
     const leaveData = {
       employeeId: selectedEmployee,
       type: leaveType,
-      startDate,
-      endDate,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
       days: calculateDays(),
+      isHalfDay,
+      halfDayType: isHalfDay ? halfDayType : null,
       reason,
       status: "pending"
     };
@@ -116,6 +153,8 @@ export default function LeavesPage() {
         setEndDate("");
         setReason("");
         setSelectedEmployee("");
+        setIsHalfDay(false);
+        setHalfDayType("");
         // Refresh the page to show the new request
         window.location.reload();
       } else {
@@ -195,6 +234,9 @@ export default function LeavesPage() {
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
                     <DialogTitle>Submit Leave Request</DialogTitle>
+                    <DialogDescription>
+                      Fill in the details to submit a new leave request. You can select half-day options for single-day leaves.
+                    </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
                     <div className="grid gap-2">
@@ -248,9 +290,44 @@ export default function LeavesPage() {
                         />
                       </div>
                     </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="half-day"
+                          checked={isHalfDay}
+                          onChange={(e) => {
+                            setIsHalfDay(e.target.checked);
+                            if (e.target.checked) {
+                              setEndDate(startDate); // Auto-set end date to same as start for half day
+                            }
+                          }}
+                          className="rounded border-gray-300"
+                        />
+                        <Label htmlFor="half-day" className="text-sm font-medium">
+                          Half Day Leave
+                        </Label>
+                      </div>
+                      {isHalfDay && (
+                        <Select value={halfDayType} onValueChange={setHalfDayType}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select half day type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="morning">Morning Half Day (9 AM - 1 PM)</SelectItem>
+                            <SelectItem value="evening">Evening Half Day (1 PM - 6 PM)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                     {startDate && endDate && (
                       <div className="text-sm text-gray-600">
                         Duration: {calculateDays()} day{calculateDays() !== 1 ? 's' : ''}
+                        {isHalfDay && halfDayType && (
+                          <span className="ml-2 text-blue-600 font-medium">
+                            ({halfDayType.charAt(0).toUpperCase() + halfDayType.slice(1)} Half Day)
+                          </span>
+                        )}
                       </div>
                     )}
                     <div className="grid gap-2">
@@ -383,6 +460,11 @@ export default function LeavesPage() {
                           </td>
                           <td className="py-3 px-4" data-testid={`leave-days-${request.id}`}>
                             {request.days} day{request.days !== 1 ? 's' : ''}
+                            {request.isHalfDay && (
+                              <span className="ml-1 text-xs text-blue-600 font-medium">
+                                ({request.halfDayType} half)
+                              </span>
+                            )}
                           </td>
                           <td className="py-3 px-4" data-testid={`leave-reason-${request.id}`}>
                             {request.reason}
