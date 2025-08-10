@@ -177,6 +177,67 @@ export default function Attendance() {
     return diffHours.toFixed(2);
   };
 
+  // Edit attendance handler
+  const handleEditAttendance = (record: any) => {
+    const employee = employees?.find(emp => emp.id === record.employeeId);
+    if (!employee) return;
+
+    // Set form with existing record data
+    setSelectedEmployeeId(record.employeeId);
+    setAttendanceDate(record.date);
+    setSelectedShiftId(record.shiftId || "");
+    setWorkLocation(record.workLocation || "office");
+    setClientSite(record.clientSite || "");
+    
+    // Format times for input fields
+    if (record.checkIn) {
+      setCheckInTime(new Date(record.checkIn).toTimeString().slice(0, 5));
+    }
+    if (record.checkOut) {
+      setCheckOutTime(new Date(record.checkOut).toTimeString().slice(0, 5));
+    }
+    if (record.gateEntry) {
+      setGateEntryTime(new Date(record.gateEntry).toTimeString().slice(0, 5));
+    }
+    if (record.gateExit) {
+      setGateExitTime(new Date(record.gateExit).toTimeString().slice(0, 5));
+    }
+    
+    setAttendanceStatus(record.status);
+    setFingerprintVerified(record.fingerprintVerified || false);
+    setFaceRecognitionVerified(record.faceRecognitionVerified || false);
+    setOvertimeHours(record.overtimeHours || "");
+    setTravelDistance(record.travelDistance || "");
+    setTravelMode(record.travelMode || "");
+    setAttendanceNotes(record.notes || "");
+    
+    // Switch to entry view for editing
+    setView("entry");
+  };
+
+  // Delete attendance handler
+  const handleDeleteAttendance = async (attendanceId: string) => {
+    if (!confirm("Are you sure you want to delete this attendance record?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/attendance/${attendanceId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Attendance record deleted successfully!");
+        window.location.reload(); // Refresh the data
+      } else {
+        alert("Failed to delete attendance record");
+      }
+    } catch (error) {
+      console.error("Error deleting attendance:", error);
+      alert("Error deleting attendance record");
+    }
+  };
+
   // Calculate metrics
   const presentToday = attendance.filter(att => att.status === "present").length;
   const lateToday = attendance.filter(att => {
@@ -677,6 +738,7 @@ export default function Attendance() {
                           <TableHead>Work Details</TableHead>
                           <TableHead>Hours & OT</TableHead>
                           <TableHead>Status & Approvals</TableHead>
+                          <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -885,12 +947,30 @@ export default function Attendance() {
                                     </div>
                                   </div>
                                 </TableCell>
+                                <TableCell>
+                                  <div className="flex items-center space-x-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEditAttendance(record)}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => handleDeleteAttendance(record.id)}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </TableCell>
                               </TableRow>
                             );
                           })
                         ) : (
                           <TableRow>
-                            <TableCell colSpan={7} className="py-8 text-center text-gray-500">
+                            <TableCell colSpan={8} className="py-8 text-center text-gray-500">
                               No attendance records found for {selectedDate}
                             </TableCell>
                           </TableRow>

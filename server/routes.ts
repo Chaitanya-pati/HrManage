@@ -221,6 +221,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get single attendance record
+  app.get("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const attendance = await storage.getAttendanceById(id);
+      if (!attendance) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error fetching attendance:", error);
+      res.status(500).json({ message: "Failed to fetch attendance record" });
+    }
+  });
+
+  // Update attendance (PUT for complete update)
+  app.put("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertAttendanceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
+      }
+
+      const attendance = await storage.updateAttendance(id, result.data);
+      if (!attendance) {
+        return res.status(404).json({ message: "Attendance not found" });
+      }
+
+      await storage.createActivity({
+        type: "attendance",
+        title: "Attendance updated",
+        description: `Attendance record updated for employee`,
+        entityType: "attendance",
+        entityId: attendance.id,
+        userId: null,
+      });
+
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // Update attendance (PATCH for partial update)
   app.patch("/api/attendance/:id", async (req, res) => {
     try {
       const { id } = req.params;
@@ -238,6 +284,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating attendance:", error);
       res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  // Delete attendance record
+  app.delete("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteAttendance(id);
+      if (!success) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+
+      await storage.createActivity({
+        type: "attendance",
+        title: "Attendance deleted",
+        description: `Attendance record was deleted`,
+        entityType: "attendance",
+        entityId: id,
+        userId: null,
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting attendance:", error);
+      res.status(500).json({ message: "Failed to delete attendance" });
+    }
+  });
+
+  // Bulk operations for attendance
+  app.post("/api/attendance/bulk", async (req, res) => {
+    try {
+      const { operation, attendanceIds, data } = req.body;
+
+      if (operation === "delete") {
+        const results = [];
+        for (const id of attendanceIds) {
+          const success = await storage.deleteAttendance(id);
+          results.push({ id, success });
+        }
+        res.json({ message: "Bulk delete completed", results });
+      } else if (operation === "update") {
+        const results = [];
+        for (const id of attendanceIds) {
+          const attendance = await storage.updateAttendance(id, data);
+          results.push({ id, attendance });
+        }
+        res.json({ message: "Bulk update completed", results });
+      } else {
+        res.status(400).json({ message: "Invalid bulk operation" });
+      }
+    } catch (error) {
+      console.error("Error in bulk attendance operation:", error);
+      res.status(500).json({ message: "Failed to perform bulk operation" });
     }
   });
 

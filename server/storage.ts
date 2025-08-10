@@ -101,8 +101,10 @@ export interface IStorage {
 
   // Attendance
   getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]>;
+  getAttendanceById(id: string): Promise<Attendance | undefined>;
   createAttendance(attendance: InsertAttendance): Promise<Attendance>;
   updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance | undefined>;
+  deleteAttendance(id: string): Promise<boolean>;
 
   // Leaves
   getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]>;
@@ -560,6 +562,11 @@ export class MemStorage implements IStorage {
     return attendance;
   }
 
+  // Get single attendance record by ID
+  async getAttendanceById(id: string): Promise<Attendance | undefined> {
+    return this.attendance.get(id);
+  }
+
   async updateAttendance(id: string, updates: Partial<InsertAttendance>): Promise<Attendance | undefined> {
     const attendance = this.attendance.get(id);
     if (!attendance) return undefined;
@@ -567,6 +574,11 @@ export class MemStorage implements IStorage {
     const updated = { ...attendance, ...updates };
     this.attendance.set(id, updated);
     return updated;
+  }
+
+  // Delete attendance record
+  async deleteAttendance(id: string): Promise<boolean> {
+    return this.attendance.delete(id);
   }
 
   // Leaves
