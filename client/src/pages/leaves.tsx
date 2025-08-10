@@ -5,10 +5,21 @@ import Header from "@/components/layout/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
 
 export default function LeavesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [leaveType, setLeaveType] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reason, setReason] = useState("");
+  const [selectedEmployee, setSelectedEmployee] = useState("");
 
   const { data: employees } = useQuery({
     queryKey: ["/api/employees"],
@@ -65,6 +76,97 @@ export default function LeavesPage() {
     }
   };
 
+  const calculateDays = () => {
+    if (!startDate || !endDate) return 0;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
+
+  const handleSubmitLeave = async () => {
+    if (!leaveType || !startDate || !endDate || !reason || !selectedEmployee) {
+      alert("Please fill in all required fields");
+      return;
+    }
+
+    const leaveData = {
+      employeeId: selectedEmployee,
+      type: leaveType,
+      startDate,
+      endDate,
+      days: calculateDays(),
+      reason,
+      status: "pending"
+    };
+
+    try {
+      const response = await fetch("/api/leaves", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(leaveData),
+      });
+
+      if (response.ok) {
+        alert("Leave request submitted successfully!");
+        setIsDialogOpen(false);
+        setLeaveType("");
+        setStartDate("");
+        setEndDate("");
+        setReason("");
+        setSelectedEmployee("");
+        // Refresh the page to show the new request
+        window.location.reload();
+      } else {
+        alert("Failed to submit leave request");
+      }
+    } catch (error) {
+      console.error("Error submitting leave request:", error);
+      alert("Error submitting leave request");
+    }
+  };
+
+  const handleApproveLeave = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/leaves/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "approved" }),
+      });
+
+      if (response.ok) {
+        alert("Leave request approved!");
+        window.location.reload();
+      } else {
+        alert("Failed to approve leave request");
+      }
+    } catch (error) {
+      console.error("Error approving leave:", error);
+      alert("Error approving leave request");
+    }
+  };
+
+  const handleRejectLeave = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/leaves/${requestId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "rejected" }),
+      });
+
+      if (response.ok) {
+        alert("Leave request rejected!");
+        window.location.reload();
+      } else {
+        alert("Failed to reject leave request");
+      }
+    } catch (error) {
+      console.error("Error rejecting leave:", error);
+      alert("Error rejecting leave request");
+    }
+  };
+
   return (
     <div className="flex h-screen bg-hrms-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -83,10 +185,97 @@ export default function LeavesPage() {
                 <h1 className="text-2xl font-bold text-neutral">Leave Management</h1>
                 <p className="text-gray-600">Manage employee leave requests and approvals</p>
               </div>
-              <Button data-testid="request-leave-button">
-                <Calendar size={16} className="mr-2" />
-                Request Leave
-              </Button>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button data-testid="request-leave-button">
+                    <Plus size={16} className="mr-2" />
+                    Request Leave
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Submit Leave Request</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="employee">Employee</Label>
+                      <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {employees?.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} ({emp.employeeId})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="leave-type">Leave Type</Label>
+                      <Select value={leaveType} onValueChange={setLeaveType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select leave type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Annual Leave">Annual Leave</SelectItem>
+                          <SelectItem value="Sick Leave">Sick Leave</SelectItem>
+                          <SelectItem value="Personal Leave">Personal Leave</SelectItem>
+                          <SelectItem value="Maternity Leave">Maternity Leave</SelectItem>
+                          <SelectItem value="Paternity Leave">Paternity Leave</SelectItem>
+                          <SelectItem value="Emergency Leave">Emergency Leave</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="start-date">Start Date</Label>
+                        <Input
+                          id="start-date"
+                          type="date"
+                          value={startDate}
+                          onChange={(e) => setStartDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="end-date">End Date</Label>
+                        <Input
+                          id="end-date"
+                          type="date"
+                          value={endDate}
+                          onChange={(e) => setEndDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    {startDate && endDate && (
+                      <div className="text-sm text-gray-600">
+                        Duration: {calculateDays()} day{calculateDays() !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                    <div className="grid gap-2">
+                      <Label htmlFor="reason">Reason</Label>
+                      <Textarea
+                        id="reason"
+                        placeholder="Provide a reason for your leave request..."
+                        value={reason}
+                        onChange={(e) => setReason(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSubmitLeave}>
+                      Submit Request
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Summary Cards */}
@@ -209,6 +398,7 @@ export default function LeavesPage() {
                                   size="sm"
                                   className="text-green-600 border-green-600 hover:bg-green-50"
                                   data-testid={`approve-leave-${request.id}`}
+                                  onClick={() => handleApproveLeave(request.id)}
                                 >
                                   Approve
                                 </Button>
@@ -217,6 +407,7 @@ export default function LeavesPage() {
                                   size="sm"
                                   className="text-red-600 border-red-600 hover:bg-red-50"
                                   data-testid={`reject-leave-${request.id}`}
+                                  onClick={() => handleRejectLeave(request.id)}
                                 >
                                   Reject
                                 </Button>
