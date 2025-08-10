@@ -511,10 +511,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const results = [];
         
         for (const employeeId of employeeIds) {
-          const attendanceData = {
+          const attendanceData: InsertAttendance = {
             employeeId,
-            date,
-            status,
+            date: new Date(date),
+            status: status as "present" | "absent" | "late" | "early_out" | "on_leave" | "holiday",
             checkIn: status === 'present' ? new Date(`${date}T09:00:00`) : null,
             checkOut: status === 'present' ? new Date(`${date}T17:00:00`) : null,
             hoursWorked: status === 'present' ? "8.00" : "0",
@@ -547,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Metrix software integration endpoint
-  app.post("/api/metrix/attendance", async (req, res) => {</old_str>
+  app.post("/api/metrix/attendance", async (req, res) => {
     try {
       const { 
         employeeId, 
@@ -609,21 +609,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attendance = await storage.updateAttendance(record.id, updates);
       } else {
         // Create new record
-        const attendanceData = {
+        const attendanceData: InsertAttendance = {
           employeeId,
-          date: attendanceDate,
+          date: new Date(attendanceDate),
           biometricId: biometricId || `METRIX_${Date.now()}`,
           fingerprintVerified: verificationMethod === 'fingerprint',
           faceRecognitionVerified: verificationMethod === 'face',
-          location: location || 'office',
-          status: 'present'
+          workLocation: location || 'office',
+          status: 'present' as const,
+          checkIn: punchType === 'IN' ? new Date(timestamp) : undefined,
+          gateEntry: punchType === 'IN' ? new Date(timestamp) : undefined,
+          biometricDeviceIn: punchType === 'IN' ? deviceId : undefined,
         };
-
-        if (punchType === 'IN') {
-          attendanceData.checkIn = new Date(timestamp);
-          attendanceData.gateEntry = new Date(timestamp).toISOString();
-          attendanceData.biometricDeviceIn = deviceId;
-        }
 
         attendance = await storage.createAttendance(attendanceData);
       }
@@ -648,7 +645,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error processing Metrix attendance:", error);
       res.status(500).json({ 
         message: "Failed to process attendance", 
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
   });
@@ -688,8 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const overtimeRequest = await storage.updateOvertimeRequest(id, {
         status,
         approvedBy,
-        rejectionReason,
-        approvedAt: status === 'approved' ? new Date() : null
+        approvedAt: status === 'approved' ? new Date() : undefined
       });
 
       if (!overtimeRequest) {

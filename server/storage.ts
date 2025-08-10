@@ -13,63 +13,46 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// Define a basic structure for biometric devices for demonstration
-interface BiometricDevice {
+// Define biometric device type from schema
+type BiometricDevice = {
   id: string;
-  deviceId: string; // Unique identifier for the biometric machine
-  name: string;
+  deviceId: string;
+  deviceName: string;
+  deviceType: string;
   location: string;
-  status: 'active' | 'inactive';
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Extend InsertAttendance to include biometric specific fields
-interface InsertAttendance {
-  employeeId: string;
-  date: string; // ISO date string for the day
-  checkIn?: Date | null;
-  checkOut?: Date | null;
-  hoursWorked?: string | null;
-  status?: 'present' | 'absent' | 'late' | 'early_out' | 'on_leave' | 'holiday';
-  notes?: string | null;
-  createdAt?: Date;
-  biometricId?: string; // Biometric ID from the machine
-  biometricDeviceIn?: string; // Device ID for check-in
-  biometricDeviceOut?: string; // Device ID for check-out
-  gateEntry?: string | null;
-  gateExit?: string | null;
-  fingerprintVerified?: boolean | null;
-  overtimeHours?: string | null;
-  lateMinutes?: number | null;
-  earlyDepartureMinutes?: number | null;
-  location?: string | null;
+  isActive?: boolean;
   clientSiteId?: string | null;
-}
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-// Extend Attendance to include biometric specific fields
-interface Attendance {
+type ClientSite = {
+  id: string;
+  name: string;
+  clientName: string;
+  siteCode: string;
+  address: any;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+type OvertimeRequest = {
   id: string;
   employeeId: string;
-  date: string; // ISO date string for the day
-  checkIn?: Date | null;
-  checkOut?: Date | null;
-  hoursWorked?: string | null;
-  status: 'present' | 'absent' | 'late' | 'early_out' | 'on_leave' | 'holiday';
-  notes?: string | null;
+  requestedDate: Date;
+  estimatedHours: string;
+  actualHours?: string | null;
+  overtimeType: string;
+  reason: string;
+  status: string;
+  requestedBy: string;
+  approvedBy?: string | null;
+  approvedAt?: Date | null;
+  rejectionReason?: string | null;
   createdAt: Date;
-  biometricId?: string; // Biometric ID from the machine
-  biometricDeviceIn?: string; // Device ID for check-in
-  biometricDeviceOut?: string; // Device ID for check-out
-  gateEntry?: string | null;
-  gateExit?: string | null;
-  fingerprintVerified?: boolean | null;
-  overtimeHours?: string | null;
-  lateMinutes?: number | null;
-  earlyDepartureMinutes?: number | null;
-  location?: string | null;
-  clientSiteId?: string | null;
-}
+  updatedAt: Date;
+};
 
 export interface IStorage {
   // Users
@@ -140,12 +123,21 @@ export interface IStorage {
   getActivities(limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
 
-  // Biometric Devices
+  // Client Sites
+  getClientSites(): Promise<ClientSite[]>;
+  createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite>;
+
+  // Biometric Devices  
   getBiometricDevices(): Promise<BiometricDevice[]>;
   getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined>;
-  createBiometricDevice(deviceData: Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice>;
-  updateBiometricDevice(deviceId: string, updates: Partial<Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined>;
+  createBiometricDevice(deviceData: Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice>;
+  updateBiometricDevice(deviceId: string, updates: Partial<Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined>;
   deleteBiometricDevice(deviceId: string): Promise<boolean>;
+
+  // Overtime Requests
+  getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]>;
+  createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest>;
+  updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined>;
 
   // Process Biometric Punches
   processBiometricPunch(punchData: {
@@ -182,7 +174,9 @@ export class MemStorage implements IStorage {
   private activities: Map<string, Activity> = new Map();
   private jobOpenings: Map<string, JobOpening> = new Map();
   private jobApplications: Map<string, JobApplication> = new Map();
-  private biometricDevices: Map<string, BiometricDevice> = new Map(); // New map for biometric devices
+  private biometricDevices: Map<string, BiometricDevice> = new Map();
+  private clientSites: Map<string, ClientSite> = new Map();
+  private overtimeRequests: Map<string, OvertimeRequest> = new Map();
 
   constructor() {
     this.seedData();
@@ -351,11 +345,11 @@ export class MemStorage implements IStorage {
 
     // Create sample biometric devices including Metrix software integration
     const biometricDeviceData = [
-      { deviceId: "BIO_DEV_001", name: "Main Entrance Scanner", location: "Lobby", status: 'active' },
-      { deviceId: "BIO_DEV_002", name: "Floor 1 Scanner", location: "Engineering Floor", status: 'active' },
-      { deviceId: "BIO_DEV_003", name: "Warehouse Scanner", location: "Warehouse", status: 'inactive' },
-      { deviceId: "METRIX_001", name: "Metrix Software Integration", location: "Software System", status: 'active' },
-      { deviceId: "METRIX_002", name: "Metrix Backup System", location: "Software System", status: 'active' },
+      { deviceId: "BIO_DEV_001", deviceName: "Main Entrance Scanner", deviceType: "fingerprint", location: "Lobby", isActive: true },
+      { deviceId: "BIO_DEV_002", deviceName: "Floor 1 Scanner", deviceType: "fingerprint", location: "Engineering Floor", isActive: true },
+      { deviceId: "BIO_DEV_003", deviceName: "Warehouse Scanner", deviceType: "fingerprint", location: "Warehouse", isActive: false },
+      { deviceId: "METRIX_001", deviceName: "Metrix Software Integration", deviceType: "software", location: "Software System", isActive: true },
+      { deviceId: "METRIX_002", deviceName: "Metrix Backup System", deviceType: "software", location: "Software System", isActive: true },
     ];
 
     biometricDeviceData.forEach(device => {
@@ -363,8 +357,9 @@ export class MemStorage implements IStorage {
       this.biometricDevices.set(id, {
         ...device,
         id,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        clientSiteId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
     });
 
@@ -1032,6 +1027,63 @@ export class MemStorage implements IStorage {
     }
 
     return this.jobApplications.delete(id);
+  }
+
+  // Client Sites
+  async getClientSites(): Promise<ClientSite[]> {
+    return Array.from(this.clientSites.values());
+  }
+
+  async createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite> {
+    const id = randomUUID();
+    const site: ClientSite = {
+      ...siteData,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.clientSites.set(id, site);
+    return site;
+  }
+
+  // Overtime Requests
+  async getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]> {
+    let requests = Array.from(this.overtimeRequests.values());
+    
+    if (filters?.employeeId) {
+      requests = requests.filter(req => req.employeeId === filters.employeeId);
+    }
+    
+    if (filters?.status) {
+      requests = requests.filter(req => req.status === filters.status);
+    }
+    
+    return requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest> {
+    const id = randomUUID();
+    const overtimeRequest: OvertimeRequest = {
+      ...request,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.overtimeRequests.set(id, overtimeRequest);
+    return overtimeRequest;
+  }
+
+  async updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined> {
+    const request = this.overtimeRequests.get(id);
+    if (!request) return undefined;
+
+    const updated = {
+      ...request,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    this.overtimeRequests.set(id, updated);
+    return updated;
   }
 }
 

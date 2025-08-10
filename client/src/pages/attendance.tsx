@@ -302,7 +302,7 @@ export default function Attendance() {
     }
     alert("All employees marked as absent!");
     window.location.reload();
-  };</old_str>
+  };
 
   // Calculate metrics
   const presentToday = attendance.filter(att => att.status === "present").length;
@@ -587,8 +587,8 @@ export default function Attendance() {
                       <UserCheck className="h-5 w-5" />
                       <span>Detailed Manual Attendance Entry</span>
                     </CardTitle>
-                  </CardHeader></Card></old_str>
-                <CardContent>
+                  </CardHeader>
+                  <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Employee Selection */}
                     <div className="space-y-4">
@@ -905,8 +905,9 @@ fetch('/api/metrix/attendance', {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {/* Advanced Attendance Table */}
