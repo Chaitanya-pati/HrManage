@@ -27,6 +27,10 @@ export default function LeavesPage() {
     queryKey: ["/api/employees"],
   });
 
+  const { data: leaveRequests, isLoading: leavesLoading } = useQuery({
+    queryKey: ["/api/leaves"],
+  });
+
   const mockLeaveRequests = [
     {
       id: "1",
@@ -155,7 +159,7 @@ export default function LeavesPage() {
         setSelectedEmployee("");
         setIsHalfDay(false);
         setHalfDayType("");
-        // Refresh the page to show the new request
+        // Invalidate queries to refresh data
         window.location.reload();
       } else {
         alert("Failed to submit leave request");
@@ -178,7 +182,8 @@ export default function LeavesPage() {
         alert("Leave request approved!");
         window.location.reload();
       } else {
-        alert("Failed to approve leave request");
+        const error = await response.json();
+        alert(`Failed to approve leave request: ${error.message}`);
       }
     } catch (error) {
       console.error("Error approving leave:", error);
@@ -198,7 +203,8 @@ export default function LeavesPage() {
         alert("Leave request rejected!");
         window.location.reload();
       } else {
-        alert("Failed to reject leave request");
+        const error = await response.json();
+        alert(`Failed to reject leave request: ${error.message}`);
       }
     } catch (error) {
       console.error("Error rejecting leave:", error);
@@ -364,7 +370,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Pending Requests</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="pending-requests">
-                        {mockLeaveRequests.filter(req => req.status === 'pending').length}
+                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'pending').length}
                       </p>
                     </div>
                   </div>
@@ -378,7 +384,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Approved</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="approved-requests">
-                        {mockLeaveRequests.filter(req => req.status === 'approved').length}
+                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'approved').length}
                       </p>
                     </div>
                   </div>
@@ -392,7 +398,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Rejected</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="rejected-requests">
-                        {mockLeaveRequests.filter(req => req.status === 'rejected').length}
+                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'rejected').length}
                       </p>
                     </div>
                   </div>
@@ -406,7 +412,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total Days</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="total-leave-days">
-                        {mockLeaveRequests.reduce((sum, req) => sum + req.days, 0)}
+                        {(leaveRequests || mockLeaveRequests).reduce((sum, req) => sum + parseFloat(req.days), 0)}
                       </p>
                     </div>
                   </div>
@@ -435,7 +441,7 @@ export default function LeavesPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {mockLeaveRequests.map((request) => (
+                      {(leaveRequests || mockLeaveRequests).map((request) => (
                         <tr key={request.id} className="border-b hover:bg-gray-50" data-testid={`leave-row-${request.id}`}>
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-3">
