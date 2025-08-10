@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Building, Users, UserCheck, Award } from "lucide-react";
+import DepartmentForm from "@/components/organization/department-form";
 
 export default function OrganizationPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
   const { data: departments, isLoading: departmentsLoading } = useQuery({
     queryKey: ["/api/departments"],
@@ -42,13 +44,26 @@ export default function OrganizationPage() {
         
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
+            
+            {/* Department Form Modal */}
+            {showAddForm && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                <DepartmentForm 
+                  onCancel={() => setShowAddForm(false)}
+                  onSuccess={() => setShowAddForm(false)}
+                />
+              </div>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-bold text-neutral">Organization Structure</h1>
                 <p className="text-gray-600">View company organizational hierarchy and departments</p>
               </div>
-              <Button data-testid="add-department-button">
+              <Button 
+                onClick={() => setShowAddForm(true)}
+                data-testid="add-department-button"
+              >
                 <Building size={16} className="mr-2" />
                 Add Department
               </Button>
