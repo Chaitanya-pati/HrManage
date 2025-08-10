@@ -6,12 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Building, Users, UserCheck, Award } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Building, Users, UserCheck, Award, Edit, Trash2, MoreVertical } from "lucide-react";
 import DepartmentForm from "@/components/organization/department-form";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function OrganizationPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingDepartment, setEditingDepartment] = useState(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: departments, isLoading: departmentsLoading } = useQuery({
     queryKey: ["/api/departments"],
@@ -32,6 +40,40 @@ export default function OrganizationPage() {
                                emp.position.toLowerCase().includes('director'));
   };
 
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: async (departmentId: string) => {
+      return apiRequest("DELETE", `/api/departments/${departmentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/departments"] });
+      toast({
+        title: "Department Deleted",
+        description: "Department has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete department",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditDepartment = (department: any) => {
+    setEditingDepartment(department);
+    setShowAddForm(true);
+  };
+
+  const handleDeleteDepartment = (departmentId: string) => {
+    deleteDepartmentMutation.mutate(departmentId);
+  };
+
+  const closeForm = () => {
+    setShowAddForm(false);
+    setEditingDepartment(null);
+  };
+
   return (
     <div className="flex h-screen bg-hrms-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -49,8 +91,9 @@ export default function OrganizationPage() {
             {showAddForm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                 <DepartmentForm 
-                  onCancel={() => setShowAddForm(false)}
-                  onSuccess={() => setShowAddForm(false)}
+                  department={editingDepartment}
+                  onCancel={closeForm}
+                  onSuccess={closeForm}
                 />
               </div>
             )}
@@ -148,7 +191,7 @@ export default function OrganizationPage() {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {departments?.map((department) => {
+                    {(departments as any[])?.map((department: any) => {
                       const deptEmployees = getEmployeesByDepartment(department.id);
                       const departmentHead = getDepartmentHead(department.id);
                       
@@ -167,9 +210,62 @@ export default function OrganizationPage() {
                                   <p className="text-sm text-gray-500">{department.description}</p>
                                 </div>
                               </div>
-                              <Badge variant="secondary" data-testid={`employee-count-${department.id}`}>
-                                {deptEmployees.length} employees
-                              </Badge>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="secondary" data-testid={`employee-count-${department.id}`}>
+                                  {deptEmployees.length} employees
+                                </Badge>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" data-testid={`department-actions-${department.id}`}>
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleEditDepartment(department)}
+                                      data-testid={`edit-department-${department.id}`}
+                                    >
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit Department
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem 
+                                          onSelect={(e) => e.preventDefault()}
+                                          className="text-red-600"
+                                          data-testid={`delete-department-${department.id}`}
+                                        >
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete Department
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete "{department.name}"? This action cannot be undone.
+                                            {deptEmployees.length > 0 && (
+                                              <span className="block mt-2 text-red-600">
+                                                Warning: This department has {deptEmployees.length} employee(s) assigned.
+                                              </span>
+                                            )}
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleDeleteDepartment(department.id)}
+                                            className="bg-red-600 hover:bg-red-700"
+                                            data-testid={`confirm-delete-${department.id}`}
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                           </CardHeader>
                           <CardContent>
@@ -194,7 +290,7 @@ export default function OrganizationPage() {
                               <p className="text-sm font-medium text-gray-600">Team Members</p>
                               {deptEmployees.length > 0 ? (
                                 <div className="space-y-2 max-h-32 overflow-y-auto">
-                                  {deptEmployees.map((employee) => (
+                                  {deptEmployees.map((employee: any) => (
                                     <div key={employee.id} className="flex items-center space-x-2 text-sm">
                                       <img
                                         src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${employee.firstName} ${employee.lastName}&size=20`}
