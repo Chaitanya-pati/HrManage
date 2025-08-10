@@ -810,6 +810,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/leaves/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteLeave(id);
+      if (!success) {
+        return res.status(404).json({ message: "Leave not found" });
+      }
+
+      await storage.createActivity({
+        type: "leave",
+        title: "Leave request deleted",
+        description: "Leave request was deleted",
+        entityType: "leave",
+        entityId: id,
+        userId: null,
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting leave:", error);
+      res.status(500).json({ message: "Failed to delete leave" });
+    }
+  });
+
   // Payroll
   app.get("/api/payroll", async (req, res) => {
     try {

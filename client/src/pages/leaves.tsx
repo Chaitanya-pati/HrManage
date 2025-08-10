@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
@@ -10,11 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Clock, CheckCircle, XCircle, Plus } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle, Plus, Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 export default function LeavesPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingLeaveId, setEditingLeaveId] = useState<string>("");
   const [leaveType, setLeaveType] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -33,7 +37,7 @@ export default function LeavesPage() {
     queryKey: ["/api/leaves"],
   });
 
-  // Remove mock data - use only real API data
+  // Use only real API data
   const displayLeaveRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
 
   const getEmployeeName = (employeeId: string) => {
@@ -68,6 +72,31 @@ export default function LeavesPage() {
     return diffDays;
   };
 
+  const resetForm = () => {
+    setLeaveType("");
+    setStartDate("");
+    setEndDate("");
+    setReason("");
+    setSelectedEmployee("");
+    setIsHalfDay(false);
+    setHalfDayType("");
+    setIsEditMode(false);
+    setEditingLeaveId("");
+  };
+
+  const handleEditLeave = (leave: any) => {
+    setIsEditMode(true);
+    setEditingLeaveId(leave.id);
+    setLeaveType(leave.type);
+    setStartDate(new Date(leave.startDate).toISOString().split('T')[0]);
+    setEndDate(new Date(leave.endDate).toISOString().split('T')[0]);
+    setReason(leave.reason);
+    setSelectedEmployee(leave.employeeId);
+    setIsHalfDay(leave.isHalfDay || false);
+    setHalfDayType(leave.halfDayType || "");
+    setIsDialogOpen(true);
+  };
+
   const handleSubmitLeave = async () => {
     if (!leaveType || !startDate || !endDate || !reason || !selectedEmployee) {
       alert("Please fill in all required fields");
@@ -97,30 +126,33 @@ export default function LeavesPage() {
     };
 
     try {
-      const response = await fetch("/api/leaves", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(leaveData),
-      });
+      let response;
+      if (isEditMode) {
+        response = await fetch(`/api/leaves/${editingLeaveId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(leaveData),
+        });
+      } else {
+        response = await fetch("/api/leaves", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(leaveData),
+        });
+      }
 
       if (response.ok) {
-        alert("Leave request submitted successfully!");
+        alert(isEditMode ? "Leave request updated successfully!" : "Leave request submitted successfully!");
         setIsDialogOpen(false);
-        setLeaveType("");
-        setStartDate("");
-        setEndDate("");
-        setReason("");
-        setSelectedEmployee("");
-        setIsHalfDay(false);
-        setHalfDayType("");
-        // Refresh the leave requests data
+        resetForm();
         await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
       } else {
-        alert("Failed to submit leave request");
+        const error = await response.json();
+        alert(`Failed to ${isEditMode ? 'update' : 'submit'} leave request: ${error.message}`);
       }
     } catch (error) {
       console.error("Error submitting leave request:", error);
-      alert("Error submitting leave request");
+      alert(`Error ${isEditMode ? 'updating' : 'submitting'} leave request`);
     }
   };
 
@@ -166,6 +198,30 @@ export default function LeavesPage() {
     }
   };
 
+  const handleDeleteLeave = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/leaves/${requestId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        alert("Leave request deleted successfully!");
+        await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
+      } else {
+        const error = await response.json();
+        alert(`Failed to delete leave request: ${error.message}`);
+      }
+    } catch (error) {
+      console.error("Error deleting leave:", error);
+      alert("Error deleting leave request");
+    }
+  };
+
+  const handleDialogClose = () => {
+    setIsDialogOpen(false);
+    resetForm();
+  };
+
   return (
     <div className="flex h-screen bg-hrms-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
@@ -184,7 +240,7 @@ export default function LeavesPage() {
                 <h1 className="text-2xl font-bold text-neutral">Leave Management</h1>
                 <p className="text-gray-600">Manage employee leave requests and approvals</p>
               </div>
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
                 <DialogTrigger asChild>
                   <Button data-testid="request-leave-button">
                     <Plus size={16} className="mr-2" />
@@ -193,9 +249,9 @@ export default function LeavesPage() {
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>Submit Leave Request</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Edit Leave Request' : 'Submit Leave Request'}</DialogTitle>
                     <DialogDescription>
-                      Fill in the details to submit a new leave request. You can select half-day options for single-day leaves.
+                      {isEditMode ? 'Update the leave request details.' : 'Fill in the details to submit a new leave request. You can select half-day options for single-day leaves.'}
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -259,7 +315,7 @@ export default function LeavesPage() {
                           onChange={(e) => {
                             setIsHalfDay(e.target.checked);
                             if (e.target.checked) {
-                              setEndDate(startDate); // Auto-set end date to same as start for half day
+                              setEndDate(startDate);
                             }
                           }}
                           className="rounded border-gray-300"
@@ -303,12 +359,12 @@ export default function LeavesPage() {
                   <div className="flex justify-end space-x-2">
                     <Button
                       variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
+                      onClick={handleDialogClose}
                     >
                       Cancel
                     </Button>
                     <Button onClick={handleSubmitLeave}>
-                      Submit Request
+                      {isEditMode ? 'Update Request' : 'Submit Request'}
                     </Button>
                   </div>
                 </DialogContent>
@@ -366,7 +422,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total Days</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="total-leave-days">
-                        {displayLeaveRequests.reduce((sum, req) => sum + parseFloat(req.days), 0)}
+                        {displayLeaveRequests.reduce((sum, req) => sum + parseFloat(req.days || 0), 0)}
                       </p>
                     </div>
                   </div>
@@ -440,28 +496,68 @@ export default function LeavesPage() {
                             {getStatusBadge(request.status)}
                           </td>
                           <td className="py-3 px-4">
-                            {request.status === 'pending' && (
-                              <div className="flex space-x-2">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="text-green-600 border-green-600 hover:bg-green-50"
-                                  data-testid={`approve-leave-${request.id}`}
-                                  onClick={() => handleApproveLeave(request.id)}
-                                >
-                                  Approve
-                                </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="text-red-600 border-red-600 hover:bg-red-50"
-                                  data-testid={`reject-leave-${request.id}`}
-                                  onClick={() => handleRejectLeave(request.id)}
-                                >
-                                  Reject
-                                </Button>
-                              </div>
-                            )}
+                            <div className="flex space-x-2">
+                              {request.status === 'pending' && (
+                                <>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="text-green-600 border-green-600 hover:bg-green-50"
+                                    data-testid={`approve-leave-${request.id}`}
+                                    onClick={() => handleApproveLeave(request.id)}
+                                  >
+                                    Approve
+                                  </Button>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                    data-testid={`reject-leave-${request.id}`}
+                                    onClick={() => handleRejectLeave(request.id)}
+                                  >
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                onClick={() => handleEditLeave(request)}
+                                data-testid={`edit-leave-${request.id}`}
+                              >
+                                <Edit size={14} />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 border-red-600 hover:bg-red-50"
+                                    data-testid={`delete-leave-${request.id}`}
+                                  >
+                                    <Trash2 size={14} />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Leave Request</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this leave request? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteLeave(request.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
                           </td>
                         </tr>
                         ))

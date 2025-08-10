@@ -1249,6 +1249,11 @@ export class DatabaseStorage implements IStorage {
     return updated || undefined;
   }
 
+  async deleteLeave(id: string): Promise<boolean> {
+    const result = await db.delete(leaves).where(eq(leaves.id, id));
+    return result.rowCount > 0;
+  }
+
   // Stub implementations for other required methods
   async getShifts(): Promise<Shift[]> { return []; }
   async getShift(id: string): Promise<Shift | undefined> { return undefined; }
