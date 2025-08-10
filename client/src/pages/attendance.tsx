@@ -238,6 +238,72 @@ export default function Attendance() {
     }
   };
 
+  // Quick attendance marking handlers
+  const handleQuickMarkAttendance = async (employeeId: string, status: 'present' | 'absent') => {
+    const existingRecord = attendance.find(att => 
+      att.employeeId === employeeId && 
+      att.date === attendanceDate
+    );
+
+    const attendanceData = {
+      employeeId,
+      date: attendanceDate,
+      status,
+      checkIn: status === 'present' ? new Date(`${attendanceDate}T09:00:00`) : null,
+      checkOut: status === 'present' ? new Date(`${attendanceDate}T17:00:00`) : null,
+      hoursWorked: status === 'present' ? "8.00" : "0",
+      workLocation: "office",
+      notes: `Manually marked ${status} via software`,
+    };
+
+    try {
+      const response = existingRecord 
+        ? await fetch(`/api/attendance/${existingRecord.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(attendanceData),
+          })
+        : await fetch("/api/attendance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(attendanceData),
+          });
+
+      if (response.ok) {
+        window.location.reload();
+      } else {
+        alert(`Failed to mark employee as ${status}`);
+      }
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      alert("Error marking attendance");
+    }
+  };
+
+  const handleMarkAllPresent = async () => {
+    if (!confirm(`Mark all employees as present for ${attendanceDate}?`)) {
+      return;
+    }
+
+    for (const emp of employees) {
+      await handleQuickMarkAttendance(emp.id, 'present');
+    }
+    alert("All employees marked as present!");
+    window.location.reload();
+  };
+
+  const handleMarkAllAbsent = async () => {
+    if (!confirm(`Mark all employees as absent for ${attendanceDate}?`)) {
+      return;
+    }
+
+    for (const emp of employees) {
+      await handleQuickMarkAttendance(emp.id, 'absent');
+    }
+    alert("All employees marked as absent!");
+    window.location.reload();
+  };</old_str>
+
   // Calculate metrics
   const presentToday = attendance.filter(att => att.status === "present").length;
   const lateToday = attendance.filter(att => {
@@ -422,15 +488,106 @@ export default function Attendance() {
               </div>
             )}
 
-            {/* Manual Attendance Entry Section */}
+            {/* Quick Attendance Marking Section */}
             {view === "entry" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <UserCheck className="h-5 w-5" />
-                    <span>Manual Attendance Entry</span>
-                  </CardTitle>
-                </CardHeader>
+              <>
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Users className="h-5 w-5" />
+                      <span>Quick Attendance Marking</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-4">
+                        <Input
+                          type="date"
+                          value={attendanceDate}
+                          onChange={(e) => setAttendanceDate(e.target.value)}
+                          className="w-auto"
+                        />
+                        <Button 
+                          onClick={handleMarkAllPresent}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          <UserCheck className="h-4 w-4 mr-2" />
+                          Mark All Present
+                        </Button>
+                        <Button 
+                          onClick={handleMarkAllAbsent}
+                          variant="destructive"
+                        >
+                          <UserX className="h-4 w-4 mr-2" />
+                          Mark All Absent
+                        </Button>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                        {employees.map((emp) => {
+                          const todayRecord = attendance.find(att => 
+                            att.employeeId === emp.id && 
+                            att.date === attendanceDate
+                          );
+                          
+                          return (
+                            <div key={emp.id} className="flex items-center justify-between p-3 border rounded-lg">
+                              <div className="flex items-center space-x-3">
+                                <img
+                                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.firstName}${emp.lastName}&size=32`}
+                                  alt="Avatar"
+                                  className="w-8 h-8 rounded-full"
+                                />
+                                <div>
+                                  <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
+                                  <p className="text-xs text-gray-500">{emp.employeeId}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                {todayRecord && (
+                                  <Badge 
+                                    variant={
+                                      todayRecord.status === 'present' ? 'default' :
+                                      todayRecord.status === 'absent' ? 'destructive' :
+                                      'secondary'
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {todayRecord.status}
+                                  </Badge>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleQuickMarkAttendance(emp.id, 'present')}
+                                  className="h-7 px-2 text-green-600 hover:bg-green-50"
+                                >
+                                  <UserCheck className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleQuickMarkAttendance(emp.id, 'absent')}
+                                  className="h-7 px-2 text-red-600 hover:bg-red-50"
+                                >
+                                  <UserX className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <UserCheck className="h-5 w-5" />
+                      <span>Detailed Manual Attendance Entry</span>
+                    </CardTitle>
+                  </CardHeader></Card></old_str>
                 <CardContent>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Employee Selection */}

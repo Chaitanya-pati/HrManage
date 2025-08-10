@@ -457,8 +457,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Software attendance marking endpoint
+  app.post("/api/attendance/mark", async (req, res) => {
+    try {
+      const { employeeIds, date, status, markAll } = req.body;
+
+      if (markAll) {
+        // Mark all employees
+        const employees = await storage.getEmployees();
+        const results = [];
+        
+        for (const emp of employees) {
+          const attendanceData = {
+            employeeId: emp.id,
+            date,
+            status,
+            checkIn: status === 'present' ? new Date(`${date}T09:00:00`) : null,
+            checkOut: status === 'present' ? new Date(`${date}T17:00:00`) : null,
+            hoursWorked: status === 'present' ? "8.00" : "0",
+            workLocation: "office",
+            notes: `Bulk marked ${status} via software`,
+          };
+
+          // Check if record exists
+          const existingAttendance = await storage.getAttendance({
+            employeeId: emp.id,
+            startDate: new Date(date),
+            endDate: new Date(date)
+          });
+
+          let attendance;
+          if (existingAttendance.length > 0) {
+            attendance = await storage.updateAttendance(existingAttendance[0].id, attendanceData);
+          } else {
+            attendance = await storage.createAttendance(attendanceData);
+          }
+          
+          results.push(attendance);
+        }
+
+        await storage.createActivity({
+          type: "attendance",
+          title: `Bulk attendance marking`,
+          description: `All employees marked as ${status} for ${date}`,
+          entityType: "attendance",
+          entityId: null,
+          userId: null,
+        });
+
+        res.json({ success: true, processed: results.length, results });
+      } else {
+        // Mark specific employees
+        const results = [];
+        
+        for (const employeeId of employeeIds) {
+          const attendanceData = {
+            employeeId,
+            date,
+            status,
+            checkIn: status === 'present' ? new Date(`${date}T09:00:00`) : null,
+            checkOut: status === 'present' ? new Date(`${date}T17:00:00`) : null,
+            hoursWorked: status === 'present' ? "8.00" : "0",
+            workLocation: "office",
+            notes: `Manually marked ${status} via software`,
+          };
+
+          const existingAttendance = await storage.getAttendance({
+            employeeId,
+            startDate: new Date(date),
+            endDate: new Date(date)
+          });
+
+          let attendance;
+          if (existingAttendance.length > 0) {
+            attendance = await storage.updateAttendance(existingAttendance[0].id, attendanceData);
+          } else {
+            attendance = await storage.createAttendance(attendanceData);
+          }
+          
+          results.push(attendance);
+        }
+
+        res.json({ success: true, processed: results.length, results });
+      }
+    } catch (error) {
+      console.error("Error marking attendance:", error);
+      res.status(500).json({ message: "Failed to mark attendance" });
+    }
+  });
+
   // Metrix software integration endpoint
-  app.post("/api/metrix/attendance", async (req, res) => {
+  app.post("/api/metrix/attendance", async (req, res) => {</old_str>
     try {
       const { 
         employeeId, 
