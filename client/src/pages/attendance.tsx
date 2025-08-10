@@ -497,6 +497,77 @@ export default function Attendance() {
                           <SelectContent>
                             <SelectItem value="office">Office</SelectItem>
                             <SelectItem value="remote">Remote</SelectItem>
+
+
+            {/* Metrix Software Integration Section */}
+            {view === "overview" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Timer className="h-5 w-5" />
+                    <span>Metrix Software Integration</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg">Integration Status</h4>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-sm font-medium">Connected to Metrix System</span>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <p>• Real-time biometric data sync</p>
+                        <p>• Automatic attendance recording</p>
+                        <p>• Fingerprint & face recognition</p>
+                        <p>• Multi-device support</p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <h4 className="font-medium text-lg">API Endpoints</h4>
+                      <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+                        <div className="text-xs font-mono">
+                          <span className="text-green-600">POST</span> /api/metrix/attendance
+                        </div>
+                        <div className="text-xs font-mono">
+                          <span className="text-blue-600">POST</span> /api/biometric/sync
+                        </div>
+                        <div className="text-xs font-mono">
+                          <span className="text-purple-600">GET</span> /api/biometric-devices
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Use these endpoints to integrate your Metrix biometric software
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h5 className="font-medium text-blue-900 mb-2">Sample Integration Code</h5>
+                    <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
+{`// Metrix software integration
+const attendanceData = {
+  employeeId: "EMP001",
+  biometricId: "BIO123456",
+  deviceId: "METRIX_001",
+  timestamp: new Date().toISOString(),
+  punchType: "IN", // or "OUT"
+  verificationMethod: "fingerprint", // or "face"
+  location: "office"
+};
+
+fetch('/api/metrix/attendance', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify(attendanceData)
+});`}
+                    </pre>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
                             <SelectItem value="field">Field Work</SelectItem>
                             <SelectItem value="client_site">Client Site</SelectItem>
                           </SelectContent>

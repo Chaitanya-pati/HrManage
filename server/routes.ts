@@ -422,9 +422,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const record of employeeData) {
         const attendance = await storage.createAttendance({
           employeeId: record.employeeId,
-          date: new Date(record.date).toISOString(),
-          checkIn: record.checkIn ? new Date(record.checkIn).toISOString() : null,
-          checkOut: record.checkOut ? new Date(record.checkOut).toISOString() : null,
+          date: new Date(record.date).toISOString().split('T')[0],
+          checkIn: record.checkIn ? new Date(record.checkIn) : null,
+          checkOut: record.checkOut ? new Date(record.checkOut) : null,
           gateEntry: record.gateEntry ? new Date(record.gateEntry).toISOString() : null,
           gateExit: record.gateExit ? new Date(record.gateExit).toISOString() : null,
           biometricDeviceIn: deviceId,
@@ -433,8 +433,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fingerprintVerified: verificationMethod.includes('fingerprint'),
           faceRecognitionVerified: verificationMethod.includes('face'),
           status: record.status || 'present',
-          hoursWorked: record.hoursWorked || 0,
-          overtimeHours: record.overtimeHours || 0,
+          hoursWorked: record.hoursWorked || "0",
+          overtimeHours: record.overtimeHours || "0",
           location: record.location || 'office'
         });
 
@@ -454,6 +454,113 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error syncing biometric data:", error);
       res.status(500).json({ message: "Failed to sync biometric data" });
+    }
+  });
+
+  // Metrix software integration endpoint
+  app.post("/api/metrix/attendance", async (req, res) => {
+    try {
+      const { 
+        employeeId, 
+        biometricId, 
+        deviceId, 
+        timestamp, 
+        punchType, 
+        verificationMethod,
+        location 
+      } = req.body;
+
+      console.log("Metrix attendance data received:", req.body);
+
+      // Validate required fields
+      if (!employeeId || !timestamp || !punchType) {
+        return res.status(400).json({ 
+          message: "Missing required fields: employeeId, timestamp, punchType" 
+        });
+      }
+
+      const attendanceDate = new Date(timestamp).toISOString().split('T')[0];
+      
+      // Find existing attendance for the day
+      const existingAttendance = await storage.getAttendance({
+        employeeId,
+        startDate: new Date(attendanceDate),
+        endDate: new Date(attendanceDate)
+      });
+
+      let attendance;
+      
+      if (existingAttendance.length > 0) {
+        // Update existing record
+        const record = existingAttendance[0];
+        const updates: any = {
+          biometricId: biometricId || record.biometricId,
+          fingerprintVerified: verificationMethod === 'fingerprint' || record.fingerprintVerified,
+          faceRecognitionVerified: verificationMethod === 'face' || record.faceRecognitionVerified,
+        };
+
+        if (punchType === 'IN' && !record.checkIn) {
+          updates.checkIn = new Date(timestamp);
+          updates.gateEntry = new Date(timestamp).toISOString();
+          updates.biometricDeviceIn = deviceId;
+          updates.status = 'present';
+        } else if (punchType === 'OUT' && record.checkIn && !record.checkOut) {
+          updates.checkOut = new Date(timestamp);
+          updates.gateExit = new Date(timestamp).toISOString();
+          updates.biometricDeviceOut = deviceId;
+          
+          // Calculate hours worked
+          const checkInTime = new Date(record.checkIn);
+          const checkOutTime = new Date(timestamp);
+          const hoursWorked = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
+          updates.hoursWorked = hoursWorked.toFixed(2);
+          updates.overtimeHours = Math.max(0, hoursWorked - 8).toFixed(2);
+        }
+
+        attendance = await storage.updateAttendance(record.id, updates);
+      } else {
+        // Create new record
+        const attendanceData = {
+          employeeId,
+          date: attendanceDate,
+          biometricId: biometricId || `METRIX_${Date.now()}`,
+          fingerprintVerified: verificationMethod === 'fingerprint',
+          faceRecognitionVerified: verificationMethod === 'face',
+          location: location || 'office',
+          status: 'present'
+        };
+
+        if (punchType === 'IN') {
+          attendanceData.checkIn = new Date(timestamp);
+          attendanceData.gateEntry = new Date(timestamp).toISOString();
+          attendanceData.biometricDeviceIn = deviceId;
+        }
+
+        attendance = await storage.createAttendance(attendanceData);
+      }
+
+      // Log activity
+      await storage.createActivity({
+        type: "attendance",
+        title: "Biometric attendance recorded",
+        description: `Attendance ${punchType} recorded via Metrix software`,
+        entityType: "attendance",
+        entityId: attendance?.id || "unknown",
+        userId: null,
+      });
+
+      res.json({ 
+        success: true, 
+        attendance,
+        message: `${punchType} recorded successfully`
+      });
+
+    } catch (error) {
+      console.error("Error processing Metrix attendance:", error);
+      res.status(500).json({ 
+        message: "Failed to process attendance", 
+        error: error.message 
+      });
     }
   });
 

@@ -349,11 +349,13 @@ export class MemStorage implements IStorage {
       });
     }
 
-    // Create sample biometric devices
+    // Create sample biometric devices including Metrix software integration
     const biometricDeviceData = [
       { deviceId: "BIO_DEV_001", name: "Main Entrance Scanner", location: "Lobby", status: 'active' },
       { deviceId: "BIO_DEV_002", name: "Floor 1 Scanner", location: "Engineering Floor", status: 'active' },
       { deviceId: "BIO_DEV_003", name: "Warehouse Scanner", location: "Warehouse", status: 'inactive' },
+      { deviceId: "METRIX_001", name: "Metrix Software Integration", location: "Software System", status: 'active' },
+      { deviceId: "METRIX_002", name: "Metrix Backup System", location: "Software System", status: 'active' },
     ];
 
     biometricDeviceData.forEach(device => {
