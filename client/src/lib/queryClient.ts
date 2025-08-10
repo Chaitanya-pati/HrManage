@@ -20,16 +20,23 @@ export const apiRequest = async (method: string, url: string, data?: any) => {
       return localStorageAPI.createPerformance(data);
     } else if (url === "/api/activities") {
       return localStorageAPI.createActivity(data);
+    } else if (url === "/api/jobs") {
+      return localStorageAPI.createJob(data);
     }
   } else if (method === "PUT" || method === "PATCH") {
     const id = url.split("/").pop();
     if (url.includes("/api/employees/") && id) {
       return localStorageAPI.updateEmployee(id, data);
+    } else if (url.includes("/api/jobs/") && id) {
+      return localStorageAPI.updateJob(id, data);
     }
   } else if (method === "DELETE") {
     const id = url.split("/").pop();
     if (url.includes("/api/employees/") && id) {
       localStorageAPI.deleteEmployee(id);
+      return { success: true };
+    } else if (url.includes("/api/jobs/") && id) {
+      localStorageAPI.deleteJob(id);
       return { success: true };
     }
   }
@@ -59,6 +66,8 @@ export const queryClient = new QueryClient({
           return localStorageAPI.getPerformance(params);
         } else if (url === "/api/activities") {
           return localStorageAPI.getActivities();
+        } else if (url === "/api/jobs") {
+          return localStorageAPI.getJobs();
         }
         
         throw new Error(`Unknown endpoint: ${url}`);

@@ -70,11 +70,12 @@ export interface Activity {
 // Storage keys
 const STORAGE_KEYS = {
   employees: 'hrms_employees',
-  departments: 'hrms_departments', 
+  departments: 'hrms_departments',
   attendance: 'hrms_attendance',
   payroll: 'hrms_payroll',
   performance: 'hrms_performance',
-  activities: 'hrms_activities'
+  activities: 'hrms_activities',
+  jobs: 'hrms_jobs',
 };
 
 // Helper functions
@@ -231,16 +232,16 @@ export const localStorageAPI = {
     const attendance = getStorageItem<Attendance>(STORAGE_KEYS.attendance);
     const departments = getStorageItem<Department>(STORAGE_KEYS.departments);
     const today = new Date().toISOString().split('T')[0];
-    
+
     const activeToday = attendance.filter(a => a.date === today && a.status === 'present').length;
     const attendanceRate = employees.length > 0 ? Math.round((activeToday / employees.length) * 100) : 0;
-    
+
     // Calculate department distribution
     const departmentDistribution = departments.map(dept => ({
       name: dept.name,
       count: employees.filter(emp => emp.departmentId === dept.id).length
     }));
-    
+
     // Mock attendance trend for last 7 days
     const attendanceTrend = Array.from({ length: 7 }, (_, i) => {
       const date = new Date();
@@ -250,7 +251,7 @@ export const localStorageAPI = {
         rate: Math.floor(Math.random() * 20) + 80 // 80-100% attendance
       };
     }).reverse();
-    
+
     return {
       totalEmployees: employees.length,
       activeToday,
@@ -352,14 +353,39 @@ export const localStorageAPI = {
   getActivities: () => getStorageItem<Activity>(STORAGE_KEYS.activities),
   createActivity: (activity: Omit<Activity, 'id' | 'timestamp'>) => {
     const activities = getStorageItem<Activity>(STORAGE_KEYS.activities);
-    const newActivity = { 
-      ...activity, 
+    const newActivity = {
+      ...activity,
       id: generateId(),
       timestamp: new Date().toISOString()
     };
     activities.unshift(newActivity); // Add to beginning
     setStorageItem(STORAGE_KEYS.activities, activities.slice(0, 50)); // Keep only 50 latest
     return newActivity;
+  },
+
+  // Jobs - New methods to be added here
+  getJobs: () => getStorageItem<any>(STORAGE_KEYS.jobs), // Assuming 'any' for Job type, replace with actual type if available
+  createJob: (job: any) => { // Assuming 'any' for Job type
+    const jobs = getStorageItem<any>(STORAGE_KEYS.jobs);
+    const newJob = { ...job, id: generateId() };
+    jobs.push(newJob);
+    setStorageItem(STORAGE_KEYS.jobs, jobs);
+    return newJob;
+  },
+  updateJob: (id: string, updates: any) => { // Assuming 'any' for Job type
+    const jobs = getStorageItem<any>(STORAGE_KEYS.jobs);
+    const index = jobs.findIndex((j: { id: string }) => j.id === id);
+    if (index !== -1) {
+      jobs[index] = { ...jobs[index], ...updates };
+      setStorageItem(STORAGE_KEYS.jobs, jobs);
+      return jobs[index];
+    }
+    throw new Error('Job not found');
+  },
+  deleteJob: (id: string) => {
+    const jobs = getStorageItem<any>(STORAGE_KEYS.jobs);
+    const filtered = jobs.filter((j: { id: string }) => j.id !== id);
+    setStorageItem(STORAGE_KEYS.jobs, filtered);
   }
 };
 

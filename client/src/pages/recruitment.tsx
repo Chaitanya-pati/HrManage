@@ -88,8 +88,8 @@ export default function RecruitmentPage() {
   };
 
   // Summary calculations
-  const activeJobs = (jobOpenings as any[])?.filter((job: any) => job.status === 'active') || [];
-  const totalApplicants = (jobOpenings as any[])?.reduce((sum: number, job: any) => sum + (job.applicantCount || 0), 0) || 0;
+  const activeJobs = Array.isArray(jobOpenings) ? jobOpenings.filter((job: any) => job.status === 'active') : [];
+  const totalApplicants = Array.isArray(jobOpenings) ? jobOpenings.reduce((sum: number, job: any) => sum + (job.applicantCount || 0), 0) : 0;
 
   return (
     <div className="flex h-screen bg-hrms-background">
@@ -231,7 +231,7 @@ export default function RecruitmentPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(jobOpenings as any[]).map((job: any) => (
+                        {Array.isArray(jobOpenings) ? jobOpenings.map((job: any) => (
                           <tr key={job.id} className="border-b hover:bg-gray-50" data-testid={`job-row-${job.id}`}>
                             <td className="py-3 px-4">
                               <div>
@@ -318,7 +318,7 @@ export default function RecruitmentPage() {
                               </DropdownMenu>
                             </td>
                           </tr>
-                        ))}
+                        )) : null}
                       </tbody>
                     </table>
                   </div>
