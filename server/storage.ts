@@ -9,9 +9,12 @@ import {
   type Activity, type InsertActivity,
   type Shift, type InsertShift,
   type JobOpening, type InsertJobOpening,
-  type JobApplication, type InsertJobApplication
+  type JobApplication, type InsertJobApplication,
+  users, departments, employees, leaves, attendance, payroll, performance, activities, shifts, jobOpenings, jobApplications
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, and, sql } from "drizzle-orm";
 
 // Define biometric device type from schema
 type BiometricDevice = {
@@ -1087,4 +1090,229 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // Users
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  // Departments
+  async getDepartments(): Promise<Department[]> {
+    return await db.select().from(departments);
+  }
+
+  async getDepartment(id: string): Promise<Department | undefined> {
+    const [department] = await db.select().from(departments).where(eq(departments.id, id));
+    return department || undefined;
+  }
+
+  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
+    const [department] = await db
+      .insert(departments)
+      .values(insertDepartment)
+      .returning();
+    return department;
+  }
+
+  async updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const [updated] = await db
+      .update(departments)
+      .set(updates)
+      .where(eq(departments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDepartment(id: string): Promise<boolean> {
+    const result = await db.delete(departments).where(eq(departments.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Employees
+  async getEmployees(): Promise<EmployeeWithDepartment[]> {
+    const result = await db
+      .select({
+        employee: employees,
+        department: departments
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id));
+
+    return result.map(row => ({
+      ...row.employee,
+      department: row.department || undefined,
+      manager: undefined // TODO: Add manager join if needed
+    }));
+  }
+
+  async getEmployee(id: string): Promise<EmployeeWithDepartment | undefined> {
+    const [result] = await db
+      .select({
+        employee: employees,
+        department: departments
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(eq(employees.id, id));
+
+    if (!result) return undefined;
+
+    return {
+      ...result.employee,
+      department: result.department || undefined,
+      manager: undefined // TODO: Add manager join if needed
+    };
+  }
+
+  async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.email, email));
+    return employee || undefined;
+  }
+
+  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
+    const [employee] = await db
+      .insert(employees)
+      .values(insertEmployee)
+      .returning();
+    return employee;
+  }
+
+  async updateEmployee(id: string, updates: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const [updated] = await db
+      .update(employees)
+      .set(updates)
+      .where(eq(employees.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteEmployee(id: string): Promise<boolean> {
+    const result = await db.delete(employees).where(eq(employees.id, id));
+    return result.rowCount > 0;
+  }
+
+  // Leaves - The critical part for the user's issue
+  async getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]> {
+    let query = db.select().from(leaves);
+
+    if (filters?.employeeId && filters?.status) {
+      query = query.where(and(
+        eq(leaves.employeeId, filters.employeeId),
+        eq(leaves.status, filters.status)
+      ));
+    } else if (filters?.employeeId) {
+      query = query.where(eq(leaves.employeeId, filters.employeeId));
+    } else if (filters?.status) {
+      query = query.where(eq(leaves.status, filters.status));
+    }
+
+    const result = await query.orderBy(sql`${leaves.createdAt} DESC`);
+    return result;
+  }
+
+  async createLeave(insertLeave: InsertLeave): Promise<Leave> {
+    const [leave] = await db
+      .insert(leaves)
+      .values({
+        ...insertLeave,
+        status: insertLeave.status ?? "pending"
+      })
+      .returning();
+    return leave;
+  }
+
+  async updateLeave(id: string, updates: Partial<InsertLeave>): Promise<Leave | undefined> {
+    const updateData = { ...updates };
+    if (updates.status === "approved" && !updateData.approvedAt) {
+      updateData.approvedAt = new Date();
+    }
+    
+    const [updated] = await db
+      .update(leaves)
+      .set(updateData)
+      .where(eq(leaves.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // Stub implementations for other required methods
+  async getShifts(): Promise<Shift[]> { return []; }
+  async getShift(id: string): Promise<Shift | undefined> { return undefined; }
+  async createShift(shift: InsertShift): Promise<Shift> { throw new Error("Not implemented"); }
+  async updateShift(id: string, shift: Partial<InsertShift>): Promise<Shift | undefined> { return undefined; }
+  async deleteShift(id: string): Promise<boolean> { return false; }
+
+  async getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]> { return []; }
+  async getAttendanceById(id: string): Promise<Attendance | undefined> { return undefined; }
+  async createAttendance(attendance: InsertAttendance): Promise<Attendance> { throw new Error("Not implemented"); }
+  async updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance | undefined> { return undefined; }
+  async deleteAttendance(id: string): Promise<boolean> { return false; }
+
+  async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> { return []; }
+  async createPayroll(payroll: InsertPayroll): Promise<Payroll> { throw new Error("Not implemented"); }
+  async updatePayroll(id: string, payroll: Partial<InsertPayroll>): Promise<Payroll | undefined> { return undefined; }
+
+  async getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]> { return []; }
+  async createPerformance(performance: InsertPerformance): Promise<Performance> { throw new Error("Not implemented"); }
+  async updatePerformance(id: string, performance: Partial<InsertPerformance>): Promise<Performance | undefined> { return undefined; }
+  async deletePerformance(id: string): Promise<boolean> { return false; }
+
+  async getJobOpenings(): Promise<JobOpening[]> { return []; }
+  async getJobOpening(id: string): Promise<JobOpening | undefined> { return undefined; }
+  async createJobOpening(jobOpening: InsertJobOpening): Promise<JobOpening> { throw new Error("Not implemented"); }
+  async updateJobOpening(id: string, jobOpening: Partial<InsertJobOpening>): Promise<JobOpening | undefined> { return undefined; }
+  async deleteJobOpening(id: string): Promise<boolean> { return false; }
+
+  async getJobApplications(jobId?: string): Promise<JobApplication[]> { return []; }
+  async getJobApplication(id: string): Promise<JobApplication | undefined> { return undefined; }
+  async createJobApplication(application: InsertJobApplication): Promise<JobApplication> { throw new Error("Not implemented"); }
+  async updateJobApplication(id: string, application: Partial<InsertJobApplication>): Promise<JobApplication | undefined> { return undefined; }
+  async deleteJobApplication(id: string): Promise<boolean> { return false; }
+
+  async getActivities(limit?: number): Promise<Activity[]> {
+    let query = db.select().from(activities);
+    if (limit) {
+      query = query.limit(limit);
+    }
+    return await query.orderBy(sql`${activities.createdAt} DESC`);
+  }
+  
+  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
+    const [activity] = await db
+      .insert(activities)
+      .values(insertActivity)
+      .returning();
+    return activity;
+  }
+
+  async getClientSites(): Promise<ClientSite[]> { return []; }
+  async createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite> { throw new Error("Not implemented"); }
+
+  async getBiometricDevices(): Promise<BiometricDevice[]> { return []; }
+  async getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined> { return undefined; }
+  async createBiometricDevice(deviceData: Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice> { throw new Error("Not implemented"); }
+  async updateBiometricDevice(deviceId: string, updates: Partial<Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined> { return undefined; }
+  async deleteBiometricDevice(deviceId: string): Promise<boolean> { return false; }
+
+  async getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]> { return []; }
+  async createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest> { throw new Error("Not implemented"); }
+  async updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined> { return undefined; }
+
+  async processBiometricPunch(punchData: any): Promise<any> { throw new Error("Not implemented"); }
+}
+
+export const storage = new DatabaseStorage();
