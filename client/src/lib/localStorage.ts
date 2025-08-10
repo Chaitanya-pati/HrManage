@@ -67,6 +67,15 @@ export interface Activity {
   timestamp: string;
 }
 
+export interface BiometricDevice {
+  id: string;
+  deviceName: string;
+  model: string;
+  ipAddress: string;
+  location: string;
+  status: 'active' | 'inactive';
+}
+
 // Storage keys
 const STORAGE_KEYS = {
   employees: 'hrms_employees',
@@ -76,6 +85,7 @@ const STORAGE_KEYS = {
   performance: 'hrms_performance',
   activities: 'hrms_activities',
   jobs: 'hrms_jobs',
+  biometricDevices: 'hrms_biometric_devices'
 };
 
 // Helper functions
@@ -203,24 +213,69 @@ const initializeSampleData = () => {
     }
   ];
 
+  // Sample biometric devices
+  const biometricDevices: BiometricDevice[] = [
+    {
+      id: generateId(),
+      deviceName: 'Main Entrance Scanner',
+      model: 'BioScan X1',
+      ipAddress: '192.168.1.100',
+      location: 'Main Entrance Hall',
+      status: 'active'
+    },
+    {
+      id: generateId(),
+      deviceName: 'Office Floor Scanner',
+      model: 'BioScan X2',
+      ipAddress: '192.168.1.101',
+      location: 'Office Floor 3',
+      status: 'active'
+    },
+    {
+      id: generateId(),
+      deviceName: 'Warehouse Scanner',
+      model: 'BioScan W1',
+      ipAddress: '192.168.1.102',
+      location: 'Warehouse Dock',
+      status: 'inactive'
+    }
+  ];
+
+  const initialData = {
+    employees,
+    departments,
+    payroll: [], // Placeholder, assuming no initial payroll data
+    performance: [], // Placeholder, assuming no initial performance data
+    leaves: [], // Placeholder, assuming no initial leave data
+    attendance,
+    activities,
+    jobOpenings: [], // Placeholder
+    jobApplications: [], // Placeholder
+    biometricDevices
+  };
+
+
   // Store sample data if not already present
   if (!localStorage.getItem(STORAGE_KEYS.departments)) {
-    setStorageItem(STORAGE_KEYS.departments, departments);
+    setStorageItem(STORAGE_KEYS.departments, initialData.departments);
   }
   if (!localStorage.getItem(STORAGE_KEYS.employees)) {
-    setStorageItem(STORAGE_KEYS.employees, employees);
+    setStorageItem(STORAGE_KEYS.employees, initialData.employees);
   }
   if (!localStorage.getItem(STORAGE_KEYS.attendance)) {
-    setStorageItem(STORAGE_KEYS.attendance, attendance);
+    setStorageItem(STORAGE_KEYS.attendance, initialData.attendance);
   }
   if (!localStorage.getItem(STORAGE_KEYS.activities)) {
-    setStorageItem(STORAGE_KEYS.activities, activities);
+    setStorageItem(STORAGE_KEYS.activities, initialData.activities);
   }
   if (!localStorage.getItem(STORAGE_KEYS.payroll)) {
-    setStorageItem(STORAGE_KEYS.payroll, []);
+    setStorageItem(STORAGE_KEYS.payroll, initialData.payroll);
   }
   if (!localStorage.getItem(STORAGE_KEYS.performance)) {
-    setStorageItem(STORAGE_KEYS.performance, []);
+    setStorageItem(STORAGE_KEYS.performance, initialData.performance);
+  }
+  if (!localStorage.getItem(STORAGE_KEYS.biometricDevices)) {
+    setStorageItem(STORAGE_KEYS.biometricDevices, initialData.biometricDevices);
   }
 };
 
@@ -231,10 +286,13 @@ export const localStorageAPI = {
     const employees = getStorageItem<Employee>(STORAGE_KEYS.employees);
     const attendance = getStorageItem<Attendance>(STORAGE_KEYS.attendance);
     const departments = getStorageItem<Department>(STORAGE_KEYS.departments);
+    const biometricDevices = getStorageItem<BiometricDevice>(STORAGE_KEYS.biometricDevices);
     const today = new Date().toISOString().split('T')[0];
 
     const activeToday = attendance.filter(a => a.date === today && a.status === 'present').length;
     const attendanceRate = employees.length > 0 ? Math.round((activeToday / employees.length) * 100) : 0;
+    const activeDevices = biometricDevices.filter(device => device.status === 'active').length;
+
 
     // Calculate department distribution
     const departmentDistribution = departments.map(dept => ({
@@ -259,7 +317,8 @@ export const localStorageAPI = {
       openPositions: 2,
       attendanceRate,
       departmentDistribution,
-      attendanceTrend
+      attendanceTrend,
+      activeBiometricDevices: activeDevices
     };
   },
 
@@ -361,6 +420,31 @@ export const localStorageAPI = {
     activities.unshift(newActivity); // Add to beginning
     setStorageItem(STORAGE_KEYS.activities, activities.slice(0, 50)); // Keep only 50 latest
     return newActivity;
+  },
+
+  // Biometric Devices
+  getBiometricDevices: () => getStorageItem<BiometricDevice>(STORAGE_KEYS.biometricDevices),
+  createBiometricDevice: (device: Omit<BiometricDevice, 'id'>) => {
+    const devices = getStorageItem<BiometricDevice>(STORAGE_KEYS.biometricDevices);
+    const newDevice = { ...device, id: generateId() };
+    devices.push(newDevice);
+    setStorageItem(STORAGE_KEYS.biometricDevices, devices);
+    return newDevice;
+  },
+  updateBiometricDevice: (id: string, updates: Partial<BiometricDevice>) => {
+    const devices = getStorageItem<BiometricDevice>(STORAGE_KEYS.biometricDevices);
+    const index = devices.findIndex(d => d.id === id);
+    if (index !== -1) {
+      devices[index] = { ...devices[index], ...updates };
+      setStorageItem(STORAGE_KEYS.biometricDevices, devices);
+      return devices[index];
+    }
+    throw new Error('Biometric device not found');
+  },
+  deleteBiometricDevice: (id: string) => {
+    const devices = getStorageItem<BiometricDevice>(STORAGE_KEYS.biometricDevices);
+    const filtered = devices.filter(d => d.id !== id);
+    setStorageItem(STORAGE_KEYS.biometricDevices, filtered);
   },
 
   // Jobs - New methods to be added here

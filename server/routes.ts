@@ -312,6 +312,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Biometric device sync endpoint for external metric software
+  app.post("/api/biometric/sync", async (req, res) => {
+    try {
+      const { deviceId, employeeData, timestamp, verificationMethod } = req.body;
+
+      // Batch process attendance records from external biometric system
+      const results = [];
+      
+      for (const record of employeeData) {
+        const attendance = await storage.createAttendance({
+          employeeId: record.employeeId,
+          date: new Date(record.date).toISOString(),
+          checkIn: record.checkIn ? new Date(record.checkIn).toISOString() : null,
+          checkOut: record.checkOut ? new Date(record.checkOut).toISOString() : null,
+          gateEntry: record.gateEntry ? new Date(record.gateEntry).toISOString() : null,
+          gateExit: record.gateExit ? new Date(record.gateExit).toISOString() : null,
+          biometricDeviceIn: deviceId,
+          biometricDeviceOut: deviceId,
+          biometricId: record.biometricId,
+          fingerprintVerified: verificationMethod.includes('fingerprint'),
+          faceRecognitionVerified: verificationMethod.includes('face'),
+          status: record.status || 'present',
+          hoursWorked: record.hoursWorked || 0,
+          overtimeHours: record.overtimeHours || 0,
+          location: record.location || 'office'
+        });
+        
+        results.push(attendance);
+      }
+
+      // Update device sync time
+      await storage.updateBiometricDevice(deviceId, {
+        lastSyncTime: new Date().toISOString()
+      });
+
+      res.json({ 
+        success: true, 
+        processed: results.length,
+        message: `Successfully synced ${results.length} attendance records`
+      });
+    } catch (error) {
+      console.error("Error syncing biometric data:", error);
+      res.status(500).json({ message: "Failed to sync biometric data" });
+    }
+  });
+
   // Overtime Requests
   app.get("/api/overtime-requests", async (req, res) => {
     try {

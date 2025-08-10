@@ -56,6 +56,18 @@ export default function Attendance() {
     position: "Demo Position"
   };
 
+  // Biometric devices data
+  const { data: biometricDevices = [] } = useQuery({
+    queryKey: ["/api/biometric-devices"],
+  });
+
+  // Enhanced metrics for biometric tracking
+  const biometricVerifications = attendance.filter(att => 
+    att.fingerprintVerified || att.faceRecognitionVerified
+  ).length;
+  
+  const deviceSyncStatus = biometricDevices.filter(device => device.isActive).length;
+
   const todayAttendance = attendance.find(att => 
     att.employeeId === currentEmployee.id && 
     new Date(att.date).toDateString() === new Date().toDateString()
@@ -106,7 +118,7 @@ export default function Attendance() {
             </div>
 
             {/* Advanced Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center">
@@ -172,7 +184,70 @@ export default function Attendance() {
                   </div>
                 </CardContent>
               </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center">
+                    <Users className="h-8 w-8 text-purple-600" />
+                    <div className="ml-4">
+                      <p className="text-sm font-medium text-gray-600">Biometric Verified</p>
+                      <p className="text-2xl font-bold text-gray-900">{biometricVerifications}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <div className="flex space-x-1">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                        </div>
+                        <span className="text-xs text-gray-500">{deviceSyncStatus} devices online</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
+            {/* Biometric Devices Status */}
+            {view === "overview" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Users className="h-5 w-5" />
+                    <span>Biometric Devices Status</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {biometricDevices.length > 0 ? biometricDevices.map((device) => (
+                      <div key={device.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{device.deviceName}</h4>
+                          <Badge variant={device.isActive ? "default" : "destructive"}>
+                            {device.isActive ? "Online" : "Offline"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">{device.location}</p>
+                        <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
+                          <span>{device.deviceType}</span>
+                          {device.lastSyncTime && (
+                            <>
+                              <span>•</span>
+                              <span>Last sync: {new Date(device.lastSyncTime).toLocaleTimeString()}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    )) : (
+                      <div className="col-span-3 text-center py-8 text-gray-500">
+                        <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p>No biometric devices configured</p>
+                        <Button variant="outline" className="mt-2" size="sm">
+                          Configure Devices
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Time Clock Section */}
             {view === "timeclock" && (

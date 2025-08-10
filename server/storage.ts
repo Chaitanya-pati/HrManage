@@ -1,4 +1,4 @@
-import { 
+import {
   type User, type InsertUser,
   type Department, type InsertDepartment,
   type Employee, type InsertEmployee, type EmployeeWithDepartment,
@@ -12,6 +12,64 @@ import {
   type JobApplication, type InsertJobApplication
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+
+// Define a basic structure for biometric devices for demonstration
+interface BiometricDevice {
+  id: string;
+  deviceId: string; // Unique identifier for the biometric machine
+  name: string;
+  location: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Extend InsertAttendance to include biometric specific fields
+interface InsertAttendance {
+  employeeId: string;
+  date: string; // ISO date string for the day
+  checkIn?: Date | null;
+  checkOut?: Date | null;
+  hoursWorked?: string | null;
+  status?: 'present' | 'absent' | 'late' | 'early_out' | 'on_leave' | 'holiday';
+  notes?: string | null;
+  createdAt?: Date;
+  biometricId?: string; // Biometric ID from the machine
+  biometricDeviceIn?: string; // Device ID for check-in
+  biometricDeviceOut?: string; // Device ID for check-out
+  gateEntry?: string | null;
+  gateExit?: string | null;
+  fingerprintVerified?: boolean | null;
+  overtimeHours?: string | null;
+  lateMinutes?: number | null;
+  earlyDepartureMinutes?: number | null;
+  location?: string | null;
+  clientSiteId?: string | null;
+}
+
+// Extend Attendance to include biometric specific fields
+interface Attendance {
+  id: string;
+  employeeId: string;
+  date: string; // ISO date string for the day
+  checkIn?: Date | null;
+  checkOut?: Date | null;
+  hoursWorked?: string | null;
+  status: 'present' | 'absent' | 'late' | 'early_out' | 'on_leave' | 'holiday';
+  notes?: string | null;
+  createdAt: Date;
+  biometricId?: string; // Biometric ID from the machine
+  biometricDeviceIn?: string; // Device ID for check-in
+  biometricDeviceOut?: string; // Device ID for check-out
+  gateEntry?: string | null;
+  gateExit?: string | null;
+  fingerprintVerified?: boolean | null;
+  overtimeHours?: string | null;
+  lateMinutes?: number | null;
+  earlyDepartureMinutes?: number | null;
+  location?: string | null;
+  clientSiteId?: string | null;
+}
 
 export interface IStorage {
   // Users
@@ -80,6 +138,24 @@ export interface IStorage {
   getActivities(limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
 
+  // Biometric Devices
+  getBiometricDevices(): Promise<BiometricDevice[]>;
+  getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined>;
+  createBiometricDevice(deviceData: Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice>;
+  updateBiometricDevice(deviceId: string, updates: Partial<Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined>;
+  deleteBiometricDevice(deviceId: string): Promise<boolean>;
+
+  // Process Biometric Punches
+  processBiometricPunch(punchData: {
+    deviceId: string;
+    employeeId: string;
+    biometricId: string; // The ID from the biometric machine
+    punchTime: Date;
+    punchType: 'IN' | 'OUT'; // 'IN' for check-in, 'OUT' for check-out
+    location?: string;
+    clientSiteId?: string;
+  }): Promise<Attendance | undefined>;
+
   // Analytics
   getDashboardMetrics(): Promise<{
     totalEmployees: number;
@@ -104,6 +180,7 @@ export class MemStorage implements IStorage {
   private activities: Map<string, Activity> = new Map();
   private jobOpenings: Map<string, JobOpening> = new Map();
   private jobApplications: Map<string, JobApplication> = new Map();
+  private biometricDevices: Map<string, BiometricDevice> = new Map(); // New map for biometric devices
 
   constructor() {
     this.seedData();
@@ -169,9 +246,9 @@ export class MemStorage implements IStorage {
 
     // Create sample shifts
     const shiftData = [
-      { 
-        name: "Day Shift", 
-        startTime: "09:00", 
+      {
+        name: "Day Shift",
+        startTime: "09:00",
         endTime: "17:00",
         breakDuration: 60,
         standardHours: "8.0",
@@ -180,9 +257,9 @@ export class MemStorage implements IStorage {
         isRotating: false,
         isNightShift: false
       },
-      { 
-        name: "Night Shift", 
-        startTime: "22:00", 
+      {
+        name: "Night Shift",
+        startTime: "22:00",
         endTime: "06:00",
         breakDuration: 60,
         standardHours: "8.0",
@@ -192,9 +269,9 @@ export class MemStorage implements IStorage {
         isNightShift: true,
         nightShiftAllowance: "500"
       },
-      { 
-        name: "Morning Shift", 
-        startTime: "06:00", 
+      {
+        name: "Morning Shift",
+        startTime: "06:00",
         endTime: "14:00",
         breakDuration: 60,
         standardHours: "8.0",
@@ -238,6 +315,7 @@ export class MemStorage implements IStorage {
     for (let i = 0; i < 7; i++) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0); // Normalize date to start of day
 
       employees.forEach(emp => {
         if (Math.random() > 0.1) { // 90% attendance rate
@@ -251,17 +329,41 @@ export class MemStorage implements IStorage {
           this.attendance.set(id, {
             id,
             employeeId: emp.id,
-            date,
+            date: date.toISOString().split('T')[0], // Store date as ISO string
             checkIn,
             checkOut,
             hoursWorked: "8.00",
             status: "present",
             notes: null,
             createdAt: new Date(),
+            biometricId: `BIO${Math.floor(Math.random() * 1000)}`,
+            biometricDeviceIn: `DEV${String(Math.floor(Math.random() * 3) + 1)}`,
+            biometricDeviceOut: `DEV${String(Math.floor(Math.random() * 3) + 1)}`,
+            fingerprintVerified: true,
+            lateMinutes: Math.floor(Math.random() * 10),
+            earlyDepartureMinutes: Math.floor(Math.random() * 15),
           });
         }
       });
     }
+
+    // Create sample biometric devices
+    const biometricDeviceData = [
+      { deviceId: "BIO_DEV_001", name: "Main Entrance Scanner", location: "Lobby", status: 'active' },
+      { deviceId: "BIO_DEV_002", name: "Floor 1 Scanner", location: "Engineering Floor", status: 'active' },
+      { deviceId: "BIO_DEV_003", name: "Warehouse Scanner", location: "Warehouse", status: 'inactive' },
+    ];
+
+    biometricDeviceData.forEach(device => {
+      const id = randomUUID();
+      this.biometricDevices.set(id, {
+        ...device,
+        id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    });
+
 
     // Create sample activities
     const activities = [
@@ -300,11 +402,11 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id, 
+    const user: User = {
+      ...insertUser,
+      id,
       role: insertUser.role ?? "employee",
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     this.users.set(id, user);
     return user;
@@ -366,11 +468,11 @@ export class MemStorage implements IStorage {
 
   async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
     const id = randomUUID();
-    const employee: Employee = { 
-      ...insertEmployee, 
-      id, 
-      createdAt: new Date(), 
-      updatedAt: new Date() 
+    const employee: Employee = {
+      ...insertEmployee,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
     this.employees.set(id, employee);
     return employee;
@@ -400,10 +502,10 @@ export class MemStorage implements IStorage {
 
   async createShift(insertShift: InsertShift): Promise<Shift> {
     const id = randomUUID();
-    const shift: Shift = { 
-      ...insertShift, 
-      id, 
-      createdAt: new Date() 
+    const shift: Shift = {
+      ...insertShift,
+      id,
+      createdAt: new Date()
     };
     this.shifts.set(id, shift);
     return shift;
@@ -431,23 +533,28 @@ export class MemStorage implements IStorage {
     }
 
     if (filters?.startDate) {
-      attendance = attendance.filter(a => a.date >= filters.startDate!);
+      // Ensure comparison is done on normalized dates
+      const startDateNormalized = filters.startDate.toISOString().split('T')[0];
+      attendance = attendance.filter(a => a.date >= startDateNormalized);
     }
 
     if (filters?.endDate) {
-      attendance = attendance.filter(a => a.date <= filters.endDate!);
+      // Ensure comparison is done on normalized dates
+      const endDateNormalized = filters.endDate.toISOString().split('T')[0];
+      attendance = attendance.filter(a => a.date <= endDateNormalized);
     }
 
-    return attendance.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return attendance.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }
 
   async createAttendance(insertAttendance: InsertAttendance): Promise<Attendance> {
     const id = randomUUID();
-    const attendance: Attendance = { 
-      ...insertAttendance, 
-      id, 
+    const attendance: Attendance = {
+      ...insertAttendance,
+      id,
       status: insertAttendance.status ?? "present",
-      createdAt: new Date() 
+      createdAt: new Date(),
+      date: insertAttendance.date || new Date().toISOString().split('T')[0], // Ensure date is set
     };
     this.attendance.set(id, attendance);
     return attendance;
@@ -479,12 +586,12 @@ export class MemStorage implements IStorage {
 
   async createLeave(insertLeave: InsertLeave): Promise<Leave> {
     const id = randomUUID();
-    const leave: Leave = { 
-      ...insertLeave, 
-      id, 
+    const leave: Leave = {
+      ...insertLeave,
+      id,
       status: insertLeave.status ?? "pending",
-      createdAt: new Date(), 
-      approvedAt: null 
+      createdAt: new Date(),
+      approvedAt: null
     };
     this.leaves.set(id, leave);
     return leave;
@@ -523,12 +630,12 @@ export class MemStorage implements IStorage {
 
   async createPayroll(insertPayroll: InsertPayroll): Promise<Payroll> {
     const id = randomUUID();
-    const payroll: Payroll = { 
-      ...insertPayroll, 
-      id, 
+    const payroll: Payroll = {
+      ...insertPayroll,
+      id,
       status: insertPayroll.status ?? "pending",
-      createdAt: new Date(), 
-      processedAt: null 
+      createdAt: new Date(),
+      processedAt: null
     };
     this.payroll.set(id, payroll);
     return payroll;
@@ -563,12 +670,12 @@ export class MemStorage implements IStorage {
 
   async createPerformance(insertPerformance: InsertPerformance): Promise<Performance> {
     const id = randomUUID();
-    const performance: Performance = { 
-      ...insertPerformance, 
-      id, 
+    const performance: Performance = {
+      ...insertPerformance,
+      id,
       status: insertPerformance.status ?? "pending",
-      createdAt: new Date(), 
-      completedAt: null 
+      createdAt: new Date(),
+      completedAt: null
     };
     this.performance.set(id, performance);
     return performance;
@@ -596,14 +703,152 @@ export class MemStorage implements IStorage {
 
   async createActivity(insertActivity: InsertActivity): Promise<Activity> {
     const id = randomUUID();
-    const activity: Activity = { 
-      ...insertActivity, 
-      id, 
+    const activity: Activity = {
+      ...insertActivity,
+      id,
       description: insertActivity.description ?? null,
-      createdAt: new Date() 
+      createdAt: new Date()
     };
     this.activities.set(id, activity);
     return activity;
+  }
+
+  // Biometric Devices
+  async getBiometricDevices(): Promise<BiometricDevice[]> {
+    return Array.from(this.biometricDevices.values());
+  }
+
+  async getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined> {
+    return Array.from(this.biometricDevices.values()).find(device => device.deviceId === deviceId);
+  }
+
+  async createBiometricDevice(deviceData: Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice> {
+    const id = randomUUID();
+    const device: BiometricDevice = {
+      ...deviceData,
+      id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.biometricDevices.set(id, device);
+    return device;
+  }
+
+  async updateBiometricDevice(deviceId: string, updates: Partial<Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined> {
+    const device = Array.from(this.biometricDevices.values()).find(d => d.deviceId === deviceId);
+    if (!device) return undefined;
+
+    const updatedDevice = {
+      ...device,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    this.biometricDevices.set(device.id, updatedDevice); // Use the internal ID to update
+    return updatedDevice;
+  }
+
+  async deleteBiometricDevice(deviceId: string): Promise<boolean> {
+    const deviceToRemove = Array.from(this.biometricDevices.values()).find(d => d.deviceId === deviceId);
+    if (deviceToRemove) {
+      return this.biometricDevices.delete(deviceToRemove.id);
+    }
+    return false;
+  }
+
+  // Process Biometric Punches
+  async processBiometricPunch(punchData: {
+    deviceId: string;
+    employeeId: string;
+    biometricId: string; // The ID from the biometric machine
+    punchTime: Date;
+    punchType: 'IN' | 'OUT'; // 'IN' for check-in, 'OUT' for check-out
+    location?: string;
+    clientSiteId?: string;
+  }): Promise<Attendance | undefined> {
+    const { deviceId, employeeId, biometricId, punchTime, punchType, location, clientSiteId } = punchData;
+    const attendanceDate = punchTime.toISOString().split('T')[0];
+
+    // Find existing attendance for the day
+    let attendanceRecord = Array.from(this.attendance.values()).find(att =>
+      att.employeeId === employeeId &&
+      att.date === attendanceDate
+    );
+
+    if (!attendanceRecord) {
+      // If no record exists for the day, create one
+      attendanceRecord = await this.createAttendance({
+        employeeId,
+        date: attendanceDate,
+        biometricId,
+        biometricDeviceIn: punchType === 'IN' ? deviceId : undefined,
+        biometricDeviceOut: punchType === 'OUT' ? deviceId : undefined,
+        location: location || null,
+        clientSiteId: clientSiteId || null,
+        status: 'present', // Default status
+        checkIn: punchType === 'IN' ? punchTime : undefined,
+        checkOut: punchType === 'OUT' ? punchTime : undefined,
+        fingerprintVerified: true,
+      });
+    } else {
+      // If record exists, update it
+      const updates: Partial<InsertAttendance> = {};
+      if (punchType === 'IN') {
+        // Only update check-in if it's not already set or if this punch is earlier (e.g., shift change)
+        if (!attendanceRecord.checkIn || punchTime < attendanceRecord.checkIn) {
+          updates.checkIn = punchTime;
+          updates.biometricDeviceIn = deviceId;
+          updates.fingerprintVerified = true;
+        }
+      } else if (punchType === 'OUT') {
+        // Only update check-out if it's not already set or if this punch is later
+        if (!attendanceRecord.checkOut || punchTime > attendanceRecord.checkOut) {
+          updates.checkOut = punchTime;
+          updates.biometricDeviceOut = deviceId;
+        }
+      }
+
+      // Calculate hours worked if both check-in and check-out are available
+      if (updates.checkIn || attendanceRecord.checkIn) {
+        const effectiveCheckIn = updates.checkIn || attendanceRecord.checkIn;
+        const effectiveCheckOut = updates.checkOut || attendanceRecord.checkOut;
+
+        if (effectiveCheckIn && effectiveCheckOut) {
+          const checkInTime = new Date(effectiveCheckIn);
+          const checkOutTime = new Date(effectiveCheckOut);
+          const hoursWorkedMs = checkOutTime.getTime() - checkInTime.getTime();
+          const hoursWorked = hoursWorkedMs / (1000 * 60 * 60);
+
+          updates.hoursWorked = hoursWorked.toFixed(2);
+          // Assuming standard 8-hour workday for overtime calculation
+          updates.overtimeHours = Math.max(0, hoursWorked - 8).toFixed(2);
+
+          // Update lateMinutes and earlyDepartureMinutes if not already set or if this punch provides more accurate data
+          const standardShiftStart = new Date(attendanceDate + "T09:00:00"); // Assuming 9 AM start
+          const standardShiftEnd = new Date(attendanceDate + "T17:00:00"); // Assuming 5 PM end
+
+          if (effectiveCheckIn > standardShiftStart) {
+            const lateMinutes = Math.floor((effectiveCheckIn.getTime() - standardShiftStart.getTime()) / (1000 * 60));
+            if (updates.lateMinutes === undefined || lateMinutes < updates.lateMinutes) {
+              updates.lateMinutes = lateMinutes;
+            }
+          }
+          if (effectiveCheckOut < standardShiftEnd) {
+            const earlyDepartureMinutes = Math.floor((standardShiftEnd.getTime() - effectiveCheckOut.getTime()) / (1000 * 60));
+            if (updates.earlyDepartureMinutes === undefined || earlyDepartureMinutes < updates.earlyDepartureMinutes) {
+              updates.earlyDepartureMinutes = earlyDepartureMinutes;
+            }
+          }
+        }
+      }
+
+      // If there are any updates to apply, call updateAttendance
+      if (Object.keys(updates).length > 0) {
+        return await this.updateAttendance(attendanceRecord.id, updates);
+      } else {
+        return attendanceRecord; // No changes needed, return the existing record
+      }
+    }
+    return attendanceRecord; // Return the newly created record if applicable
   }
 
   // Analytics
@@ -618,14 +863,11 @@ export class MemStorage implements IStorage {
 
     // Calculate today's attendance
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayAttendance = attendance.filter(a => {
-      const attendanceDate = new Date(a.date);
-      attendanceDate.setHours(0, 0, 0, 0);
-      return attendanceDate.getTime() === today.getTime();
-    });
+    const todayString = today.toISOString().split('T')[0];
 
-    const activeToday = todayAttendance.length;
+    const todayAttendanceRecords = attendance.filter(a => a.date === todayString);
+
+    const activeToday = todayAttendanceRecords.length;
     const pendingLeaves = leaves.filter(l => l.status === "pending").length;
 
     // Department distribution
@@ -639,13 +881,9 @@ export class MemStorage implements IStorage {
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today);
       date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+      const trendDateString = date.toISOString().split('T')[0];
 
-      const dayAttendance = attendance.filter(a => {
-        const attendanceDate = new Date(a.date);
-        attendanceDate.setHours(0, 0, 0, 0);
-        return attendanceDate.getTime() === date.getTime();
-      });
+      const dayAttendance = attendance.filter(a => a.date === trendDateString);
 
       const rate = activeEmployees.length > 0 ? (dayAttendance.length / activeEmployees.length) * 100 : 0;
       attendanceTrend.push({
@@ -702,8 +940,8 @@ export class MemStorage implements IStorage {
     const jobOpening = this.jobOpenings.get(id);
     if (!jobOpening) return undefined;
 
-    const updated = { 
-      ...jobOpening, 
+    const updated = {
+      ...jobOpening,
       ...updates,
       updatedAt: new Date()
     };
