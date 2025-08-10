@@ -88,8 +88,8 @@ export default function RecruitmentPage() {
   };
 
   // Summary calculations
-  const activeJobs = jobOpenings?.filter((job: any) => job.status === 'active') || [];
-  const totalApplicants = jobOpenings?.reduce((sum: number, job: any) => sum + (job.applicantCount || 0), 0) || 0;
+  const activeJobs = (jobOpenings as any[])?.filter((job: any) => job.status === 'active') || [];
+  const totalApplicants = (jobOpenings as any[])?.reduce((sum: number, job: any) => sum + (job.applicantCount || 0), 0) || 0;
 
   return (
     <div className="flex h-screen bg-hrms-background">

@@ -691,7 +691,8 @@ export class MemStorage implements IStorage {
       id,
       applicantCount: 0,
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      postedBy: null, // Ensure this field is set
     };
     this.jobOpenings.set(id, jobOpening);
     return jobOpening;
@@ -715,18 +716,18 @@ export class MemStorage implements IStorage {
     const applications = Array.from(this.jobApplications.values())
       .filter(app => app.jobId === id);
     applications.forEach(app => this.jobApplications.delete(app.id));
-    
+
     return this.jobOpenings.delete(id);
   }
 
   // Job Application methods
   async getJobApplications(jobId?: string): Promise<JobApplication[]> {
     let applications = Array.from(this.jobApplications.values());
-    
+
     if (jobId) {
       applications = applications.filter(app => app.jobId === jobId);
     }
-    
+
     return applications.sort((a, b) => (b.appliedAt?.getTime() || 0) - (a.appliedAt?.getTime() || 0));
   }
 
@@ -777,7 +778,7 @@ export class MemStorage implements IStorage {
         this.jobOpenings.set(jobOpening.id, jobOpening);
       }
     }
-    
+
     return this.jobApplications.delete(id);
   }
 }

@@ -35,14 +35,14 @@ export const employees = pgTable("employees", {
   gender: text("gender"),
   maritalStatus: text("marital_status"),
   profileImage: text("profile_image"),
-  
+
   // Address Information
   currentAddress: jsonb("current_address"),
   permanentAddress: jsonb("permanent_address"),
-  
+
   // Emergency Contact
   emergencyContact: jsonb("emergency_contact"),
-  
+
   // Professional Information
   departmentId: varchar("department_id"),
   position: text("position").notNull(),
@@ -54,7 +54,7 @@ export const employees = pgTable("employees", {
   probationEndDate: timestamp("probation_end_date"),
   confirmationDate: timestamp("confirmation_date"),
   status: text("status").notNull().default("active"),
-  
+
   // Salary & Shift Information
   shiftId: varchar("shift_id").references(() => shifts.id),
   baseSalary: decimal("base_salary", { precision: 10, scale: 2 }),
@@ -63,7 +63,7 @@ export const employees = pgTable("employees", {
   medicalAllowance: decimal("medical_allowance", { precision: 10, scale: 2 }).default("0"),
   specialAllowance: decimal("special_allowance", { precision: 10, scale: 2 }).default("0"),
   dearnessAllowance: decimal("dearness_allowance", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Overtime Configuration
   overtimeEligible: boolean("overtime_eligible").default(false),
   overtimeCategory: text("overtime_category"), // workmen, staff, management
@@ -71,13 +71,13 @@ export const employees = pgTable("employees", {
   overtimeRate: decimal("overtime_rate", { precision: 4, scale: 2 }).default("1.5"), // multiplier
   holidayOvertimeRate: decimal("holiday_overtime_rate", { precision: 4, scale: 2 }).default("2.0"),
   nightShiftOvertimeRate: decimal("night_shift_overtime_rate", { precision: 4, scale: 2 }).default("2.0"),
-  
+
   // Educational Information
   education: jsonb("education"), // Array of educational qualifications
   skills: jsonb("skills"), // Array of skills and certifications
   experience: jsonb("experience"), // Previous work experience
   languages: jsonb("languages"), // Languages known
-  
+
   // Statutory Information
   panNumber: text("pan_number"),
   aadharNumber: text("aadhar_number"),
@@ -86,23 +86,23 @@ export const employees = pgTable("employees", {
   esiNumber: text("esi_number"),
   uanNumber: text("uan_number"),
   previousPfDetails: jsonb("previous_pf_details"),
-  
+
   // Banking Information
   bankDetails: jsonb("bank_details"),
-  
+
   // Safety & Compliance (for field/industrial work)
   medicalFitnessCertificate: text("medical_fitness_certificate"),
   safetyTrainingCompleted: boolean("safety_training_completed").default(false),
   safetyEquipmentSizes: jsonb("safety_equipment_sizes"),
   specialLicenses: jsonb("special_licenses"),
   policeVerification: text("police_verification_status"),
-  
+
   // Field Work Configuration
   fieldWorkEligible: boolean("field_work_eligible").default(false),
   clientSiteAccess: jsonb("client_site_access"), // Array of allowed client sites
   travelAllowance: decimal("travel_allowance", { precision: 10, scale: 2 }).default("0"),
   fieldAllowance: decimal("field_allowance", { precision: 10, scale: 2 }).default("0"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -136,14 +136,14 @@ export const attendance = pgTable("attendance", {
   employeeId: varchar("employee_id").references(() => employees.id).notNull(),
   shiftId: varchar("shift_id").references(() => shifts.id),
   date: timestamp("date").notNull(),
-  
+
   // Time tracking with biometric integration
   checkIn: timestamp("check_in"),
   checkOut: timestamp("check_out"),
   breakStart: timestamp("break_start"),
   breakEnd: timestamp("break_end"),
   actualBreakDuration: integer("actual_break_duration"), // minutes
-  
+
   // Biometric tracking
   gateEntry: timestamp("gate_entry"), // Biometric gate entry time
   gateExit: timestamp("gate_exit"), // Biometric gate exit time
@@ -152,7 +152,7 @@ export const attendance = pgTable("attendance", {
   biometricId: text("biometric_id"), // Employee biometric template ID
   fingerprintVerified: boolean("fingerprint_verified").default(false),
   faceRecognitionVerified: boolean("face_recognition_verified").default(false),
-  
+
   // Work location tracking
   workLocation: text("work_location").notNull().default("office"), // office, field, client_site, remote, home
   isRemote: boolean("is_remote").default(false),
@@ -161,7 +161,7 @@ export const attendance = pgTable("attendance", {
   clientLocation: jsonb("client_location"), // Client site address and GPS
   remoteLocation: jsonb("remote_location"), // GPS coordinates for remote/field work
   geoFenceStatus: text("geo_fence_status"), // inside, outside, unknown
-  
+
   // Hours calculation
   regularHours: decimal("regular_hours", { precision: 4, scale: 2 }).default("0"),
   overtimeHours: decimal("overtime_hours", { precision: 4, scale: 2 }).default("0"),
@@ -169,33 +169,33 @@ export const attendance = pgTable("attendance", {
   holidayHours: decimal("holiday_hours", { precision: 4, scale: 2 }).default("0"),
   fieldWorkHours: decimal("field_work_hours", { precision: 4, scale: 2 }).default("0"),
   hoursWorked: decimal("hours_worked", { precision: 4, scale: 2 }),
-  
+
   // Overtime breakdown
   preShiftOvertime: decimal("pre_shift_overtime", { precision: 4, scale: 2 }).default("0"),
   postShiftOvertime: decimal("post_shift_overtime", { precision: 4, scale: 2 }).default("0"),
   weekendOvertime: decimal("weekend_overtime", { precision: 4, scale: 2 }).default("0"),
   holidayOvertime: decimal("holiday_overtime", { precision: 4, scale: 2 }).default("0"),
-  
+
   // Status and approvals
   status: text("status").notNull().default("present"), // present, absent, late, early_leave, half_day
   lateArrival: boolean("late_arrival").default(false),
   earlyDeparture: boolean("early_departure").default(false),
   lateArrivalMinutes: integer("late_arrival_minutes").default(0),
   earlyDepartureMinutes: integer("early_departure_minutes").default(0),
-  
+
   // Approval workflow for field work and overtime
   overtimeApproved: boolean("overtime_approved").default(false),
   overtimeApprovedBy: varchar("overtime_approved_by").references(() => employees.id),
   overtimeApprovedAt: timestamp("overtime_approved_at"),
   fieldWorkApproved: boolean("field_work_approved").default(false),
   fieldWorkApprovedBy: varchar("field_work_approved_by").references(() => employees.id),
-  
+
   // Travel and expenses for field work
   travelDistance: decimal("travel_distance", { precision: 8, scale: 2 }), // kilometers
   travelMode: text("travel_mode"), // car, train, bus, flight
   travelExpenses: decimal("travel_expenses", { precision: 10, scale: 2 }).default("0"),
   fieldExpenses: decimal("field_expenses", { precision: 10, scale: 2 }).default("0"),
-  
+
   notes: text("notes"),
   adminNotes: text("admin_notes"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -221,7 +221,7 @@ export const payroll = pgTable("payroll", {
   employeeId: varchar("employee_id").references(() => employees.id).notNull(),
   month: integer("month").notNull(),
   year: integer("year").notNull(),
-  
+
   // Attendance Summary
   totalWorkingDays: integer("total_working_days").notNull(),
   daysPresent: integer("days_present").default(0),
@@ -229,7 +229,7 @@ export const payroll = pgTable("payroll", {
   halfDays: integer("half_days").default(0),
   lateArrivals: integer("late_arrivals").default(0),
   earlyDepartures: integer("early_departures").default(0),
-  
+
   // Hours Summary
   regularHours: decimal("regular_hours", { precision: 5, scale: 2 }).default("0"),
   overtimeHours: decimal("overtime_hours", { precision: 5, scale: 2 }).default("0"),
@@ -237,7 +237,7 @@ export const payroll = pgTable("payroll", {
   holidayHours: decimal("holiday_hours", { precision: 5, scale: 2 }).default("0"),
   fieldWorkHours: decimal("field_work_hours", { precision: 5, scale: 2 }).default("0"),
   totalHours: decimal("total_hours", { precision: 5, scale: 2 }).default("0"),
-  
+
   // Basic Salary Components
   baseSalary: decimal("base_salary", { precision: 10, scale: 2 }).notNull(),
   hra: decimal("hra", { precision: 10, scale: 2 }).default("0"),
@@ -245,7 +245,7 @@ export const payroll = pgTable("payroll", {
   medicalAllowance: decimal("medical_allowance", { precision: 10, scale: 2 }).default("0"),
   specialAllowance: decimal("special_allowance", { precision: 10, scale: 2 }).default("0"),
   dearnessAllowance: decimal("dearness_allowance", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Variable Pay Components
   overtimePay: decimal("overtime_pay", { precision: 10, scale: 2 }).default("0"),
   nightShiftAllowance: decimal("night_shift_allowance", { precision: 10, scale: 2 }).default("0"),
@@ -254,13 +254,13 @@ export const payroll = pgTable("payroll", {
   travelAllowance: decimal("travel_allowance", { precision: 10, scale: 2 }).default("0"),
   performanceBonus: decimal("performance_bonus", { precision: 10, scale: 2 }).default("0"),
   incentives: decimal("incentives", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Attendance-based Deductions
   lossOfPayDeduction: decimal("loss_of_pay_deduction", { precision: 10, scale: 2 }).default("0"),
   lateArrivalPenalty: decimal("late_arrival_penalty", { precision: 10, scale: 2 }).default("0"),
   earlyDeparturePenalty: decimal("early_departure_penalty", { precision: 10, scale: 2 }).default("0"),
   halfDayDeduction: decimal("half_day_deduction", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Statutory Deductions
   pfDeduction: decimal("pf_deduction", { precision: 10, scale: 2 }).default("0"),
   pfEmployerContribution: decimal("pf_employer_contribution", { precision: 10, scale: 2 }).default("0"),
@@ -268,23 +268,23 @@ export const payroll = pgTable("payroll", {
   esiEmployerContribution: decimal("esi_employer_contribution", { precision: 10, scale: 2 }).default("0"),
   professionalTax: decimal("professional_tax", { precision: 10, scale: 2 }).default("0"),
   incomeTax: decimal("income_tax", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Other Deductions
   loanDeduction: decimal("loan_deduction", { precision: 10, scale: 2 }).default("0"),
   advanceDeduction: decimal("advance_deduction", { precision: 10, scale: 2 }).default("0"),
   canteenCharges: decimal("canteen_charges", { precision: 10, scale: 2 }).default("0"),
   otherDeductions: decimal("other_deductions", { precision: 10, scale: 2 }).default("0"),
-  
+
   // Calculations
   grossSalary: decimal("gross_salary", { precision: 10, scale: 2 }).notNull(),
   totalDeductions: decimal("total_deductions", { precision: 10, scale: 2 }).default("0"),
   netSalary: decimal("net_salary", { precision: 10, scale: 2 }).notNull(),
-  
+
   // Rates
   hourlyRate: decimal("hourly_rate", { precision: 10, scale: 2 }),
   dailyRate: decimal("daily_rate", { precision: 10, scale: 2 }),
   overtimeRate: decimal("overtime_rate", { precision: 10, scale: 2 }),
-  
+
   // Status and Processing
   calculationMethod: text("calculation_method").default("working_days"), // working_days, calendar_days
   status: text("status").notNull().default("pending"), // pending, calculated, approved, processed, paid
@@ -293,7 +293,7 @@ export const payroll = pgTable("payroll", {
   approvedAt: timestamp("approved_at"),
   processedAt: timestamp("processed_at"),
   payDate: timestamp("pay_date"),
-  
+
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -486,17 +486,17 @@ export const insertPerformanceSchema = createInsertSchema(performance).omit({
   completedAt: true,
 });
 
-export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({ 
-  id: true, 
-  createdAt: true, 
+export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
-  applicantCount: true 
+  applicantCount: true
 });
 
-export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ 
-  id: true, 
-  appliedAt: true, 
-  reviewedAt: true 
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({
+  id: true,
+  appliedAt: true,
+  reviewedAt: true
 });
 
 export const insertActivitySchema = createInsertSchema(activities).omit({
