@@ -7,7 +7,9 @@ import {
   type Payroll, type InsertPayroll,
   type Performance, type InsertPerformance,
   type Activity, type InsertActivity,
-  type Shift, type InsertShift
+  type Shift, type InsertShift,
+  type JobOpening, type InsertJobOpening,
+  type JobApplication, type InsertJobApplication
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -58,6 +60,21 @@ export interface IStorage {
   getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]>;
   createPerformance(performance: InsertPerformance): Promise<Performance>;
   updatePerformance(id: string, performance: Partial<InsertPerformance>): Promise<Performance | undefined>;
+  deletePerformance(id: string): Promise<boolean>;
+
+  // Job Openings
+  getJobOpenings(): Promise<JobOpening[]>;
+  getJobOpening(id: string): Promise<JobOpening | undefined>;
+  createJobOpening(jobOpening: InsertJobOpening): Promise<JobOpening>;
+  updateJobOpening(id: string, jobOpening: Partial<InsertJobOpening>): Promise<JobOpening | undefined>;
+  deleteJobOpening(id: string): Promise<boolean>;
+
+  // Job Applications
+  getJobApplications(jobId?: string): Promise<JobApplication[]>;
+  getJobApplication(id: string): Promise<JobApplication | undefined>;
+  createJobApplication(application: InsertJobApplication): Promise<JobApplication>;
+  updateJobApplication(id: string, application: Partial<InsertJobApplication>): Promise<JobApplication | undefined>;
+  deleteJobApplication(id: string): Promise<boolean>;
 
   // Activities
   getActivities(limit?: number): Promise<Activity[]>;
@@ -85,6 +102,8 @@ export class MemStorage implements IStorage {
   private payroll: Map<string, Payroll> = new Map();
   private performance: Map<string, Performance> = new Map();
   private activities: Map<string, Activity> = new Map();
+  private jobOpenings: Map<string, JobOpening> = new Map();
+  private jobApplications: Map<string, JobApplication> = new Map();
 
   constructor() {
     this.seedData();
@@ -637,15 +656,129 @@ export class MemStorage implements IStorage {
 
     const attendanceRate = activeEmployees.length > 0 ? (activeToday / activeEmployees.length) * 100 : 0;
 
+    const openPositions = Array.from(this.jobOpenings.values()).filter(j => j.status === 'active').length;
+
     return {
       totalEmployees,
       activeToday,
       pendingLeaves,
-      openPositions: 15, // Mock data
+      openPositions,
       attendanceRate: Math.round(attendanceRate * 10) / 10,
       departmentDistribution,
       attendanceTrend,
     };
+  }
+
+  // Performance delete method
+  async deletePerformance(id: string): Promise<boolean> {
+    return this.performance.delete(id);
+  }
+
+  // Job Opening methods
+  async getJobOpenings(): Promise<JobOpening[]> {
+    return Array.from(this.jobOpenings.values())
+      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+  }
+
+  async getJobOpening(id: string): Promise<JobOpening | undefined> {
+    return this.jobOpenings.get(id);
+  }
+
+  async createJobOpening(insertJobOpening: InsertJobOpening): Promise<JobOpening> {
+    const id = randomUUID();
+    const jobOpening: JobOpening = {
+      ...insertJobOpening,
+      id,
+      applicantCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.jobOpenings.set(id, jobOpening);
+    return jobOpening;
+  }
+
+  async updateJobOpening(id: string, updates: Partial<InsertJobOpening>): Promise<JobOpening | undefined> {
+    const jobOpening = this.jobOpenings.get(id);
+    if (!jobOpening) return undefined;
+
+    const updated = { 
+      ...jobOpening, 
+      ...updates,
+      updatedAt: new Date()
+    };
+    this.jobOpenings.set(id, updated);
+    return updated;
+  }
+
+  async deleteJobOpening(id: string): Promise<boolean> {
+    // Also delete related applications
+    const applications = Array.from(this.jobApplications.values())
+      .filter(app => app.jobId === id);
+    applications.forEach(app => this.jobApplications.delete(app.id));
+    
+    return this.jobOpenings.delete(id);
+  }
+
+  // Job Application methods
+  async getJobApplications(jobId?: string): Promise<JobApplication[]> {
+    let applications = Array.from(this.jobApplications.values());
+    
+    if (jobId) {
+      applications = applications.filter(app => app.jobId === jobId);
+    }
+    
+    return applications.sort((a, b) => (b.appliedAt?.getTime() || 0) - (a.appliedAt?.getTime() || 0));
+  }
+
+  async getJobApplication(id: string): Promise<JobApplication | undefined> {
+    return this.jobApplications.get(id);
+  }
+
+  async createJobApplication(insertApplication: InsertJobApplication): Promise<JobApplication> {
+    const id = randomUUID();
+    const application: JobApplication = {
+      ...insertApplication,
+      id,
+      appliedAt: new Date(),
+      reviewedAt: null
+    };
+    this.jobApplications.set(id, application);
+
+    // Update job opening applicant count
+    const jobOpening = this.jobOpenings.get(insertApplication.jobId);
+    if (jobOpening) {
+      jobOpening.applicantCount = (jobOpening.applicantCount || 0) + 1;
+      this.jobOpenings.set(jobOpening.id, jobOpening);
+    }
+
+    return application;
+  }
+
+  async updateJobApplication(id: string, updates: Partial<InsertJobApplication>): Promise<JobApplication | undefined> {
+    const application = this.jobApplications.get(id);
+    if (!application) return undefined;
+
+    const updated = {
+      ...application,
+      ...updates,
+      reviewedAt: updates.status && updates.status !== 'pending' ? new Date() : application.reviewedAt
+    };
+    this.jobApplications.set(id, updated);
+    return updated;
+  }
+
+  async deleteJobApplication(id: string): Promise<boolean> {
+    const application = this.jobApplications.get(id);
+    if (application) {
+      // Update job opening applicant count
+      const jobOpening = this.jobOpenings.get(application.jobId);
+      if (jobOpening && jobOpening.applicantCount && jobOpening.applicantCount > 0) {
+        jobOpening.applicantCount = jobOpening.applicantCount - 1;
+        this.jobOpenings.set(jobOpening.id, jobOpening);
+      }
+    }
+    
+    return this.jobApplications.delete(id);
   }
 }
 

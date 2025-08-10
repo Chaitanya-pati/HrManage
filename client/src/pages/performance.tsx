@@ -9,15 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Star, TrendingUp, Users, Award, Plus, FileText } from "lucide-react";
+import { Star, TrendingUp, Users, Award, Plus, FileText, Edit, Trash2, MoreVertical, Eye } from "lucide-react";
 import type { Performance, EmployeeWithDepartment } from "@shared/schema";
 
 export default function PerformancePage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [reviewer, setReviewer] = useState("");
   const [period, setPeriod] = useState("");
@@ -37,7 +40,7 @@ export default function PerformancePage() {
 
   const createPerformanceMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", "/api/performance", {
+      const data = {
         employeeId: selectedEmployee,
         reviewerId: reviewer,
         period,
@@ -47,13 +50,18 @@ export default function PerformancePage() {
         rating: parseInt(rating),
         feedback,
         status: "completed"
-      });
+      };
+      
+      const url = editingReview ? `/api/performance/${editingReview.id}` : "/api/performance";
+      const method = editingReview ? "PUT" : "POST";
+      
+      return apiRequest(method, url, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/performance"] });
       toast({
-        title: "Performance review created",
-        description: "Performance review has been successfully recorded.",
+        title: editingReview ? "Review Updated" : "Review Created",
+        description: `Performance review has been successfully ${editingReview ? "updated" : "recorded"}.`,
       });
       setShowCreateForm(false);
       resetForm();
@@ -61,7 +69,27 @@ export default function PerformancePage() {
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create performance review",
+        description: error.message || `Failed to ${editingReview ? "update" : "create"} performance review`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePerformanceMutation = useMutation({
+    mutationFn: async (reviewId: string) => {
+      return apiRequest("DELETE", `/api/performance/${reviewId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/performance"] });
+      toast({
+        title: "Review Deleted",
+        description: "Performance review has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to delete review",
         variant: "destructive",
       });
     },
@@ -73,6 +101,21 @@ export default function PerformancePage() {
     setPeriod("");
     setRating("");
     setFeedback("");
+    setEditingReview(null);
+  };
+
+  const handleEditReview = (review: any) => {
+    setEditingReview(review);
+    setSelectedEmployee(review.employeeId);
+    setReviewer(review.reviewerId);
+    setPeriod(review.period);
+    setRating(review.rating?.toString() || "");
+    setFeedback(review.feedback || "");
+    setShowCreateForm(true);
+  };
+
+  const handleDeleteReview = (reviewId: string) => {
+    deletePerformanceMutation.mutate(reviewId);
   };
 
   const getStatusBadge = (status: string) => {
@@ -325,7 +368,10 @@ export default function PerformancePage() {
                       disabled={!selectedEmployee || !reviewer || !period || !rating || createPerformanceMutation.isPending}
                       data-testid="submit-review-button"
                     >
-                      {createPerformanceMutation.isPending ? "Creating..." : "Create Review"}
+                      {createPerformanceMutation.isPending 
+                        ? (editingReview ? "Updating..." : "Creating...") 
+                        : (editingReview ? "Update Review" : "Create Review")
+                      }
                     </Button>
                   </div>
                 </CardContent>
@@ -407,13 +453,58 @@ export default function PerformancePage() {
                                 {getStatusBadge(review.status)}
                               </td>
                               <td className="py-3 px-4">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  data-testid={`view-review-${review.id}`}
-                                >
-                                  View
-                                </Button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" data-testid={`performance-actions-${review.id}`}>
+                                      <MoreVertical className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent>
+                                    <DropdownMenuItem 
+                                      data-testid={`view-review-${review.id}`}
+                                    >
+                                      <Eye className="mr-2 h-4 w-4" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleEditReview(review)}
+                                      data-testid={`edit-review-${review.id}`}
+                                    >
+                                      <Edit className="mr-2 h-4 w-4" />
+                                      Edit Review
+                                    </DropdownMenuItem>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <DropdownMenuItem 
+                                          onSelect={(e) => e.preventDefault()}
+                                          data-testid={`delete-review-${review.id}`}
+                                          className="text-red-600 focus:text-red-600"
+                                        >
+                                          <Trash2 className="mr-2 h-4 w-4" />
+                                          Delete Review
+                                        </DropdownMenuItem>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>Delete Performance Review</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete this performance review for {getEmployeeName(review.employeeId)}? This action cannot be undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                          <AlertDialogAction 
+                                            onClick={() => handleDeleteReview(review.id)}
+                                            className="bg-red-600 hover:bg-red-700"
+                                            data-testid={`confirm-delete-review-${review.id}`}
+                                          >
+                                            Delete Review
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </td>
                             </tr>
                           ))
@@ -422,7 +513,11 @@ export default function PerformancePage() {
                             <td colSpan={6} className="py-8 text-center text-gray-500" data-testid="no-performance-data">
                               <Award className="h-12 w-12 text-gray-300 mx-auto mb-4" />
                               <p className="text-lg font-medium">No performance reviews found</p>
-                              <p className="text-sm">Create performance reviews to track employee performance for {selectedYear}</p>
+                              <p className="text-sm mb-4">Create performance reviews to track employee performance for {selectedYear}</p>
+                              <Button onClick={() => setShowCreateForm(true)}>
+                                <Plus size={16} className="mr-2" />
+                                Create Review
+                              </Button>
                             </td>
                           </tr>
                         )}

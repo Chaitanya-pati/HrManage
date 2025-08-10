@@ -9,7 +9,9 @@ import {
   insertPayrollSchema,
   insertPerformanceSchema,
   insertActivitySchema,
-  insertShiftSchema // Assuming insertShiftSchema is defined elsewhere and imported
+  insertShiftSchema,
+  insertJobOpeningSchema,
+  insertJobApplicationSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -545,6 +547,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activities:", error);
       res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // Job Openings API endpoints
+  app.get("/api/jobs", async (req, res) => {
+    try {
+      const jobs = await storage.getJobOpenings();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  app.post("/api/jobs", async (req, res) => {
+    try {
+      const result = insertJobOpeningSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid job data", errors: result.error.errors });
+      }
+
+      const job = await storage.createJobOpening(result.data);
+      res.status(201).json(job);
+    } catch (error) {
+      console.error("Error creating job:", error);
+      res.status(500).json({ message: "Failed to create job" });
+    }
+  });
+
+  app.put("/api/jobs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertJobOpeningSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid job data", errors: result.error.errors });
+      }
+
+      const job = await storage.updateJobOpening(id, result.data);
+      res.json(job);
+    } catch (error) {
+      console.error("Error updating job:", error);
+      res.status(500).json({ message: "Failed to update job" });
+    }
+  });
+
+  app.delete("/api/jobs/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteJobOpening(id);
+      res.json({ message: "Job deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ message: "Failed to delete job" });
+    }
+  });
+
+  // Job Applications API endpoints
+  app.get("/api/jobs/:jobId/applications", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const applications = await storage.getJobApplications(jobId);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching job applications:", error);
+      res.status(500).json({ message: "Failed to fetch job applications" });
+    }
+  });
+
+  app.post("/api/jobs/:jobId/applications", async (req, res) => {
+    try {
+      const { jobId } = req.params;
+      const result = insertJobApplicationSchema.safeParse({ ...req.body, jobId });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid application data", errors: result.error.errors });
+      }
+
+      const application = await storage.createJobApplication(result.data);
+      res.status(201).json(application);
+    } catch (error) {
+      console.error("Error creating job application:", error);
+      res.status(500).json({ message: "Failed to create job application" });
+    }
+  });
+
+  app.put("/api/applications/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const application = await storage.updateJobApplication(id, req.body);
+      res.json(application);
+    } catch (error) {
+      console.error("Error updating job application:", error);
+      res.status(500).json({ message: "Failed to update job application" });
+    }
+  });
+
+  // Performance review update endpoint
+  app.put("/api/performance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertPerformanceSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid performance data", errors: result.error.errors });
+      }
+
+      const performance = await storage.updatePerformance(id, result.data);
+      res.json(performance);
+    } catch (error) {
+      console.error("Error updating performance:", error);
+      res.status(500).json({ message: "Failed to update performance" });
+    }
+  });
+
+  app.delete("/api/performance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deletePerformance(id);
+      res.json({ message: "Performance review deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting performance:", error);
+      res.status(500).json({ message: "Failed to delete performance" });
     }
   });
 

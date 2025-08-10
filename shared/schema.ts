@@ -310,6 +310,40 @@ export const salarySlips = pgTable("salary_slips", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const jobOpenings = pgTable("job_openings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title").notNull(),
+  department: text("department").notNull(),
+  location: text("location").notNull(),
+  type: text("type").notNull(), // full_time, part_time, contract, internship
+  status: text("status").notNull().default("active"), // active, paused, closed
+  description: text("description").notNull(),
+  requirements: text("requirements").notNull(),
+  salaryMin: decimal("salary_min", { precision: 10, scale: 2 }),
+  salaryMax: decimal("salary_max", { precision: 10, scale: 2 }),
+  experience: text("experience"),
+  skills: text("skills"),
+  postedBy: varchar("posted_by").references(() => employees.id),
+  applicantCount: integer("applicant_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const jobApplications = pgTable("job_applications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  jobId: varchar("job_id").references(() => jobOpenings.id).notNull(),
+  candidateName: text("candidate_name").notNull(),
+  candidateEmail: text("candidate_email").notNull(),
+  candidatePhone: text("candidate_phone"),
+  resumeUrl: text("resume_url"),
+  coverLetter: text("cover_letter"),
+  status: text("status").notNull().default("pending"), // pending, shortlisted, interview, hired, rejected
+  appliedAt: timestamp("applied_at").defaultNow(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: varchar("reviewed_by").references(() => employees.id),
+  notes: text("notes"),
+});
+
 export const performance = pgTable("performance", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   employeeId: varchar("employee_id").references(() => employees.id).notNull(),
@@ -452,6 +486,19 @@ export const insertPerformanceSchema = createInsertSchema(performance).omit({
   completedAt: true,
 });
 
+export const insertJobOpeningSchema = createInsertSchema(jobOpenings).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true,
+  applicantCount: true 
+});
+
+export const insertJobApplicationSchema = createInsertSchema(jobApplications).omit({ 
+  id: true, 
+  appliedAt: true, 
+  reviewedAt: true 
+});
+
 export const insertActivitySchema = createInsertSchema(activities).omit({
   id: true,
   createdAt: true,
@@ -488,6 +535,12 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type SalarySlip = typeof salarySlips.$inferSelect;
 export type InsertSalarySlip = z.infer<typeof insertSalarySlipSchema>;
 
+export type JobOpening = typeof jobOpenings.$inferSelect;
+export type InsertJobOpening = z.infer<typeof insertJobOpeningSchema>;
+
+export type JobApplication = typeof jobApplications.$inferSelect;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+
 // Extended types for joins
 export type EmployeeWithDepartment = Employee & {
   department?: Department;
@@ -506,4 +559,12 @@ export type LeaveWithEmployee = Leave & {
 
 export type PayrollWithEmployee = Payroll & {
   employee: Employee;
+};
+
+export type JobOpeningWithApplications = JobOpening & {
+  applications?: JobApplication[];
+};
+
+export type JobApplicationWithJob = JobApplication & {
+  jobOpening: JobOpening;
 };
