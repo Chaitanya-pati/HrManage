@@ -31,59 +31,11 @@ export default function LeavesPage() {
     queryKey: ["/api/leaves"],
   });
 
-  const mockLeaveRequests = [
-    {
-      id: "1",
-      employeeId: employees?.[0]?.id || "1",
-      type: "Annual Leave",
-      startDate: "2024-02-15",
-      endDate: "2024-02-20",
-      days: 5,
-      isHalfDay: false,
-      halfDayType: null,
-      reason: "Family vacation",
-      status: "pending"
-    },
-    {
-      id: "2",
-      employeeId: employees?.[1]?.id || "2", 
-      type: "Sick Leave",
-      startDate: "2024-02-10",
-      endDate: "2024-02-10",
-      days: 0.5,
-      isHalfDay: true,
-      halfDayType: "morning",
-      reason: "Medical appointment",
-      status: "approved"
-    },
-    {
-      id: "3",
-      employeeId: employees?.[2]?.id || "3",
-      type: "Personal Leave", 
-      startDate: "2024-02-25",
-      endDate: "2024-02-25",
-      days: 0.5,
-      isHalfDay: true,
-      halfDayType: "evening",
-      reason: "Personal matters",
-      status: "rejected"
-    },
-    {
-      id: "4",
-      employeeId: employees?.[0]?.id || "1",
-      type: "Emergency Leave",
-      startDate: "2024-03-01",
-      endDate: "2024-03-01",
-      days: 1,
-      isHalfDay: false,
-      halfDayType: null,
-      reason: "Family emergency",
-      status: "approved"
-    }
-  ];
+  // Remove mock data - use only real API data
+  const displayLeaveRequests = Array.isArray(leaveRequests) ? leaveRequests : [];
 
   const getEmployeeName = (employeeId: string) => {
-    const employee = employees?.find(emp => emp.id === employeeId);
+    const employee = Array.isArray(employees) ? employees.find((emp: any) => emp.id === employeeId) : null;
     return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
   };
 
@@ -159,7 +111,7 @@ export default function LeavesPage() {
         setSelectedEmployee("");
         setIsHalfDay(false);
         setHalfDayType("");
-        // Invalidate queries to refresh data
+        // Refresh the leave requests data
         window.location.reload();
       } else {
         alert("Failed to submit leave request");
@@ -252,11 +204,11 @@ export default function LeavesPage() {
                           <SelectValue placeholder="Select employee" />
                         </SelectTrigger>
                         <SelectContent>
-                          {employees?.map((emp) => (
+                          {Array.isArray(employees) ? employees.map((emp: any) => (
                             <SelectItem key={emp.id} value={emp.id}>
                               {emp.firstName} {emp.lastName} ({emp.employeeId})
                             </SelectItem>
-                          ))}
+                          )) : null}
                         </SelectContent>
                       </Select>
                     </div>
@@ -370,7 +322,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Pending Requests</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="pending-requests">
-                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'pending').length}
+                        {displayLeaveRequests.filter(req => req.status === 'pending').length}
                       </p>
                     </div>
                   </div>
@@ -384,7 +336,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Approved</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="approved-requests">
-                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'approved').length}
+                        {displayLeaveRequests.filter(req => req.status === 'approved').length}
                       </p>
                     </div>
                   </div>
@@ -398,7 +350,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Rejected</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="rejected-requests">
-                        {(leaveRequests || mockLeaveRequests).filter(req => req.status === 'rejected').length}
+                        {displayLeaveRequests.filter(req => req.status === 'rejected').length}
                       </p>
                     </div>
                   </div>
@@ -412,7 +364,7 @@ export default function LeavesPage() {
                     <div className="ml-4">
                       <p className="text-sm font-medium text-gray-600">Total Days</p>
                       <p className="text-2xl font-bold text-gray-900" data-testid="total-leave-days">
-                        {(leaveRequests || mockLeaveRequests).reduce((sum, req) => sum + parseFloat(req.days), 0)}
+                        {displayLeaveRequests.reduce((sum, req) => sum + parseFloat(req.days), 0)}
                       </p>
                     </div>
                   </div>
@@ -441,7 +393,14 @@ export default function LeavesPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(leaveRequests || mockLeaveRequests).map((request) => (
+                      {displayLeaveRequests.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-8 text-center text-gray-500">
+                            {leavesLoading ? "Loading leave requests..." : "No leave requests found. Click 'Request Leave' to submit a new request."}
+                          </td>
+                        </tr>
+                      ) : (
+                        displayLeaveRequests.map((request) => (
                         <tr key={request.id} className="border-b hover:bg-gray-50" data-testid={`leave-row-${request.id}`}>
                           <td className="py-3 px-4">
                             <div className="flex items-center space-x-3">
@@ -503,7 +462,8 @@ export default function LeavesPage() {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
