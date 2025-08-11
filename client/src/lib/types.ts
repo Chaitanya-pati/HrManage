@@ -1,11 +1,13 @@
 export interface DashboardMetrics {
   totalEmployees: number;
   activeToday: number;
+  presentToday: number;
+  onLeaveToday: number;
   pendingLeaves: number;
   openPositions: number;
   attendanceRate: number;
-  departmentDistribution: { name: string; count: number }[];
-  attendanceTrend: { date: string; rate: number }[];
+  departmentDistribution?: { name: string; count: number }[];
+  attendanceTrend?: { date: string; rate: number }[];
 }
 
 export interface Activity {

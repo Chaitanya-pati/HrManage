@@ -12,7 +12,7 @@ export default function Charts({ metrics, isLoading }: ChartsProps) {
   const departmentChartRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    if (!metrics || isLoading) return;
+    if (!metrics || isLoading || !metrics.attendanceTrend || !metrics.departmentDistribution) return;
 
     // Dynamically import Chart.js to avoid SSR issues
     import('chart.js/auto').then(({ default: Chart }) => {
@@ -23,10 +23,10 @@ export default function Charts({ metrics, isLoading }: ChartsProps) {
           new Chart(attendanceCtx, {
             type: 'line',
             data: {
-              labels: metrics.attendanceTrend.map(item => item.date),
+              labels: metrics.attendanceTrend?.map(item => item.date) || [],
               datasets: [{
                 label: 'Attendance Rate',
-                data: metrics.attendanceTrend.map(item => item.rate),
+                data: metrics.attendanceTrend?.map(item => item.rate) || [],
                 borderColor: 'hsl(208.9, 88.2%, 41.2%)',
                 backgroundColor: 'hsla(208.9, 88.2%, 41.2%, 0.1)',
                 tension: 0.4,
@@ -64,9 +64,9 @@ export default function Charts({ metrics, isLoading }: ChartsProps) {
           new Chart(departmentCtx, {
             type: 'doughnut',
             data: {
-              labels: metrics.departmentDistribution.map(dept => dept.name),
+              labels: metrics.departmentDistribution?.map(dept => dept.name) || [],
               datasets: [{
-                data: metrics.departmentDistribution.map(dept => dept.count),
+                data: metrics.departmentDistribution?.map(dept => dept.count) || [],
                 backgroundColor: [
                   'hsl(208.9, 88.2%, 41.2%)',
                   'hsl(120, 100%, 25%)',
