@@ -28,6 +28,7 @@ const menuItems = [
     section: "Employee Management",
     items: [
       { icon: "fas fa-user", label: "Employee Profiles", path: "/employees" },
+      { icon: "fas fa-gift", label: "Employee Benefits", path: "/employee-benefits" },
       { icon: "fas fa-sitemap", label: "Organization Structure", path: "/organization" },
       { icon: "fas fa-user-plus", label: "Recruitment", path: "/recruitment" },
     ]

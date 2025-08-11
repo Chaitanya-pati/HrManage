@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Dashboard from "@/pages/dashboard";
 import Employees from "@/pages/employees";
+import EmployeeBenefits from "@/pages/employee-benefits";
 import Attendance from "@/pages/attendance";
 import Payroll from "@/pages/payroll";
 import Performance from "@/pages/performance";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/dashboard" component={Dashboard} />
       <Route path="/employees" component={Employees} />
+      <Route path="/employee-benefits" component={EmployeeBenefits} />
       <Route path="/organization" component={Organization} />
       <Route path="/recruitment" component={Recruitment} />
       <Route path="/attendance" component={Attendance} />
