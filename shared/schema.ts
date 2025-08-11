@@ -206,16 +206,16 @@ export const leaves = sqliteTable("leaves", {
   id: text("id").primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   employeeId: text("employee_id").notNull(),
   type: text("type").notNull(),
-  startDate: integer("start_date", { mode: 'timestamp' }).notNull(),
-  endDate: integer("end_date", { mode: 'timestamp' }).notNull(),
+  startDate: integer("start_date").notNull(),
+  endDate: integer("end_date").notNull(),
   days: real("days").notNull(),
   isHalfDay: integer("is_half_day", { mode: 'boolean' }).default(false),
   halfDayType: text("half_day_type"),
   reason: text("reason").notNull(),
   status: text("status").notNull().default("pending"),
   approvedBy: text("approved_by"),
-  approvedAt: integer("approved_at", { mode: 'timestamp' }),
-  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  approvedAt: integer("approved_at"),
+  createdAt: integer("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const payroll = sqliteTable("payroll", {
