@@ -454,7 +454,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/job-applications", async (req, res) => {
     try {
       const { jobId } = req.query;
-      const applications = await storage.getJobApplications(jobId as string);
+      const applications = await storage.getApplications(jobId as string);
       res.json(applications);
     } catch (error) {
       console.error("Error fetching job applications:", error);
@@ -464,16 +464,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/job-applications", async (req, res) => {
     try {
-      const result = insertJobApplicationSchema.safeParse(req.body);
+      const result = insertApplicationSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid job application data", errors: result.error.errors });
       }
 
-      const application = await storage.createJobApplication(result.data);
+      const application = await storage.createApplication(result.data);
       res.status(201).json(application);
     } catch (error) {
       console.error("Error creating job application:", error);
       res.status(500).json({ message: "Failed to create job application" });
+    }
+  });
+
+  // Attendance by ID (for editing/deleting)
+  app.put("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertAttendanceSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
+      }
+
+      const attendance = await storage.updateAttendance(id, result.data);
+      if (!attendance) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+
+      res.json(attendance);
+    } catch (error) {
+      console.error("Error updating attendance:", error);
+      res.status(500).json({ message: "Failed to update attendance" });
+    }
+  });
+
+  app.delete("/api/attendance/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteAttendance(id);
+      if (!success) {
+        return res.status(404).json({ message: "Attendance record not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting attendance:", error);
+      res.status(500).json({ message: "Failed to delete attendance" });
+    }
+  });
+
+  // Biometric devices (mock endpoint for now)
+  app.get("/api/biometric-devices", async (req, res) => {
+    try {
+      // Mock biometric devices data
+      const devices = [
+        {
+          id: "device-1",
+          deviceName: "Main Entrance Scanner",
+          deviceType: "Fingerprint + Face",
+          location: "Main Entrance",
+          isActive: true,
+          lastSyncTime: new Date().toISOString()
+        },
+        {
+          id: "device-2", 
+          deviceName: "Admin Block Scanner",
+          deviceType: "Fingerprint",
+          location: "Admin Block",
+          isActive: false,
+          lastSyncTime: new Date(Date.now() - 3600000).toISOString()
+        }
+      ];
+      res.json(devices);
+    } catch (error) {
+      console.error("Error fetching biometric devices:", error);
+      res.status(500).json({ message: "Failed to fetch biometric devices" });
+    }
+  });
+
+  // Client sites (mock endpoint)
+  app.get("/api/client-sites", async (req, res) => {
+    try {
+      const sites = [
+        { id: "site-1", name: "TechCorp Bangalore", address: "Tech Park, Bangalore" },
+        { id: "site-2", name: "InfoSys Chennai", address: "IT Corridor, Chennai" },
+        { id: "site-3", name: "Client Site Mumbai", address: "BKC, Mumbai" }
+      ];
+      res.json(sites);
+    } catch (error) {
+      console.error("Error fetching client sites:", error);
+      res.status(500).json({ message: "Failed to fetch client sites" });
+    }
+  });
+
+  // Jobs endpoint (for recruitment)
+  app.get("/api/jobs", async (req, res) => {
+    try {
+      const jobs = await storage.getJobOpenings();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
     }
   });
 

@@ -55,6 +55,8 @@ export default function Attendance() {
   const [travelDistance, setTravelDistance] = useState("");
   const [travelMode, setTravelMode] = useState("");
   const [attendanceNotes, setAttendanceNotes] = useState("");
+  const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [selectedStatusFilter, setSelectedStatusFilter] = useState("all");
 
   const { data: attendance = [], isLoading } = useQuery({
     queryKey: ["/api/attendance", { startDate: selectedDate, endDate: selectedDate }],
@@ -64,9 +66,41 @@ export default function Attendance() {
     queryKey: ["/api/employees"],
   });
 
+  const { data: departments = [] } = useQuery({
+    queryKey: ["/api/departments"],
+  });
+
   const { data: shifts = [] } = useQuery({
     queryKey: ["/api/shifts"],
   });
+
+  // Filter employees based on department and status
+  const filteredEmployees = employees.filter((emp) => {
+    const departmentMatch = selectedDepartment === "all" || emp.departmentId === selectedDepartment;
+    
+    if (!departmentMatch) return false;
+    
+    if (selectedStatusFilter === "all") return true;
+    
+    const todayRecord = attendance.find(att => 
+      att.employeeId === emp.id && 
+      att.date === attendanceDate
+    );
+    
+    if (selectedStatusFilter === "unmarked") return !todayRecord;
+    if (selectedStatusFilter === "present") return todayRecord?.status === "present";
+    if (selectedStatusFilter === "absent") return todayRecord?.status === "absent";
+    
+    return true;
+  });
+
+  // Calculate attendance statistics
+  const attendanceStats = {
+    present: attendance.filter(att => att.status === "present" && att.date === attendanceDate).length,
+    absent: attendance.filter(att => att.status === "absent" && att.date === attendanceDate).length,
+    late: attendance.filter(att => att.status === "late" && att.date === attendanceDate).length,
+    unmarked: employees.length - attendance.filter(att => att.date === attendanceDate).length
+  };
 
   // Mock current employee for demo - in real app this would come from auth
   const currentEmployee = employees[0] || {
@@ -241,8 +275,23 @@ export default function Attendance() {
     }
   };
 
+  // Department-specific attendance marking
+  const handleMarkDepartmentAttendance = async (status: 'present' | 'absent') => {
+    const departmentEmployees = employees.filter(emp => emp.departmentId === selectedDepartment);
+    
+    if (!confirm(`Mark all ${departmentEmployees.length} employees in this department as ${status} for ${attendanceDate}?`)) {
+      return;
+    }
+
+    for (const emp of departmentEmployees) {
+      await handleQuickMarkAttendance(emp.id, status);
+    }
+    alert(`All employees in department marked as ${status}!`);
+    window.location.reload();
+  };
+
   // Quick attendance marking handlers
-  const handleQuickMarkAttendance = async (employeeId: string, status: 'present' | 'absent') => {
+  const handleQuickMarkAttendance = async (employeeId: string, status: 'present' | 'absent' | 'late') => {
     const existingRecord = attendance.find(att => 
       att.employeeId === employeeId && 
       att.date === attendanceDate
@@ -252,11 +301,15 @@ export default function Attendance() {
       employeeId,
       date: attendanceDate,
       status,
-      checkIn: status === 'present' ? new Date(`${attendanceDate}T09:00:00`) : null,
-      checkOut: status === 'present' ? new Date(`${attendanceDate}T17:00:00`) : null,
-      hoursWorked: status === 'present' ? "8.00" : "0",
+      checkIn: status === 'present' ? new Date(`${attendanceDate}T09:00:00`) : 
+               status === 'late' ? new Date(`${attendanceDate}T09:30:00`) : null,
+      checkOut: (status === 'present' || status === 'late') ? new Date(`${attendanceDate}T17:00:00`) : null,
+      hoursWorked: status === 'present' ? "8.00" : 
+                   status === 'late' ? "7.50" : "0",
       workLocation: "office",
-      notes: `Manually marked ${status} via software`,
+      lateArrival: status === 'late',
+      lateArrivalMinutes: status === 'late' ? 30 : 0,
+      notes: `Manually marked ${status} via software (Hardware device offline)`,
     };
 
     try {
@@ -531,94 +584,226 @@ export default function Attendance() {
               </div>
             )}
 
-            {/* Quick Attendance Marking Section */}
+            {/* Enhanced Quick Attendance Marking Section */}
             {view === "entry" && (
               <>
                 <Card className="mb-6">
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Users className="h-5 w-5" />
-                      <span>Quick Attendance Marking</span>
+                      <span>Smart Attendance Management - Hardware Device Alternative</span>
                     </CardTitle>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Use this when biometric devices are offline or for manual attendance entry
+                    </p>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex items-center space-x-4">
-                        <Input
-                          type="date"
-                          value={attendanceDate}
-                          onChange={(e) => setAttendanceDate(e.target.value)}
-                          className="w-auto"
-                        />
-                        <Button 
-                          onClick={handleMarkAllPresent}
-                          className="bg-green-600 hover:bg-green-700"
-                        >
-                          <UserCheck className="h-4 w-4 mr-2" />
-                          Mark All Present
-                        </Button>
-                        <Button 
-                          onClick={handleMarkAllAbsent}
-                          variant="destructive"
-                        >
-                          <UserX className="h-4 w-4 mr-2" />
-                          Mark All Absent
-                        </Button>
+                    <div className="space-y-6">
+                      {/* Enhanced Controls */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Select Date</label>
+                          <Input
+                            type="date"
+                            value={attendanceDate}
+                            onChange={(e) => setAttendanceDate(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Filter by Department</label>
+                          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All Departments" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Departments</SelectItem>
+                              {departments.map((dept) => (
+                                <SelectItem key={dept.id} value={dept.id}>
+                                  {dept.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Filter by Status</label>
+                          <Select value={selectedStatusFilter} onValueChange={setSelectedStatusFilter}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All Employees" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Employees</SelectItem>
+                              <SelectItem value="unmarked">Unmarked Only</SelectItem>
+                              <SelectItem value="present">Present Only</SelectItem>
+                              <SelectItem value="absent">Absent Only</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div>
+                          <label className="text-sm font-medium mb-2 block">Quick Actions</label>
+                          <div className="flex space-x-2">
+                            <Button 
+                              onClick={handleMarkAllPresent}
+                              className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1"
+                              size="sm"
+                            >
+                              All Present
+                            </Button>
+                            <Button 
+                              onClick={handleMarkAllAbsent}
+                              variant="destructive"
+                              className="text-xs px-2 py-1"
+                              size="sm"
+                            >
+                              All Absent
+                            </Button>
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
-                        {employees.map((emp) => {
-                          const todayRecord = attendance.find(att => 
-                            att.employeeId === emp.id && 
-                            att.date === attendanceDate
-                          );
+                      {/* Department-wise Bulk Actions */}
+                      {selectedDepartment !== "all" && (
+                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-medium text-blue-900">
+                                Department: {departments.find(d => d.id === selectedDepartment)?.name}
+                              </h4>
+                              <p className="text-sm text-blue-700">
+                                {filteredEmployees.length} employees in this department
+                              </p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <Button 
+                                onClick={() => handleMarkDepartmentAttendance('present')}
+                                className="bg-green-600 hover:bg-green-700"
+                                size="sm"
+                              >
+                                <UserCheck className="h-4 w-4 mr-1" />
+                                Mark Dept Present
+                              </Button>
+                              <Button 
+                                onClick={() => handleMarkDepartmentAttendance('absent')}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                <UserX className="h-4 w-4 mr-1" />
+                                Mark Dept Absent
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
-                          return (
-                            <div key={emp.id} className="flex items-center justify-between p-3 border rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                <img
-                                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.firstName}${emp.lastName}&size=32`}
-                                  alt="Avatar"
-                                  className="w-8 h-8 rounded-full"
-                                />
-                                <div>
-                                  <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
-                                  <p className="text-xs text-gray-500">{emp.employeeId}</p>
+                      {/* Employee Grid with Enhanced Display */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">
+                            Employee Attendance ({filteredEmployees.length} employees)
+                          </h4>
+                          <div className="flex items-center space-x-4 text-sm">
+                            <div className="flex items-center space-x-1">
+                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                              <span>Present: {attendanceStats.present}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                              <span>Absent: {attendanceStats.absent}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                              <span>Unmarked: {attendanceStats.unmarked}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                          {filteredEmployees.map((emp) => {
+                            const todayRecord = attendance.find(att => 
+                              att.employeeId === emp.id && 
+                              att.date === attendanceDate
+                            );
+
+                            return (
+                              <div key={emp.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-md transition-shadow">
+                                <div className="flex items-center space-x-3">
+                                  <img
+                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${emp.firstName}${emp.lastName}&size=32`}
+                                    alt="Avatar"
+                                    className="w-8 h-8 rounded-full"
+                                  />
+                                  <div>
+                                    <p className="font-medium text-sm">{emp.firstName} {emp.lastName}</p>
+                                    <p className="text-xs text-gray-500">{emp.employeeId}</p>
+                                    <p className="text-xs text-gray-500">{emp.position}</p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  {todayRecord ? (
+                                    <Badge 
+                                      variant={
+                                        todayRecord.status === 'present' ? 'default' :
+                                        todayRecord.status === 'absent' ? 'destructive' :
+                                        todayRecord.status === 'late' ? 'secondary' :
+                                        'outline'
+                                      }
+                                      className="text-xs"
+                                    >
+                                      {todayRecord.status}
+                                      {todayRecord.checkIn && (
+                                        <span className="ml-1">
+                                          {new Date(todayRecord.checkIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                      )}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="text-xs text-gray-500">
+                                      Unmarked
+                                    </Badge>
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleQuickMarkAttendance(emp.id, 'present')}
+                                    className="h-7 px-2 text-green-600 hover:bg-green-50"
+                                    title="Mark Present"
+                                  >
+                                    <UserCheck className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleQuickMarkAttendance(emp.id, 'late')}
+                                    className="h-7 px-2 text-orange-600 hover:bg-orange-50"
+                                    title="Mark Late"
+                                  >
+                                    <Timer className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleQuickMarkAttendance(emp.id, 'absent')}
+                                    className="h-7 px-2 text-red-600 hover:bg-red-50"
+                                    title="Mark Absent"
+                                  >
+                                    <UserX className="h-3 w-3" />
+                                  </Button>
                                 </div>
                               </div>
-                              <div className="flex items-center space-x-2">
-                                {todayRecord && (
-                                  <Badge 
-                                    variant={
-                                      todayRecord.status === 'present' ? 'default' :
-                                      todayRecord.status === 'absent' ? 'destructive' :
-                                      'secondary'
-                                    }
-                                    className="text-xs"
-                                  >
-                                    {todayRecord.status}
-                                  </Badge>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleQuickMarkAttendance(emp.id, 'present')}
-                                  className="h-7 px-2 text-green-600 hover:bg-green-50"
-                                >
-                                  <UserCheck className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleQuickMarkAttendance(emp.id, 'absent')}
-                                  className="h-7 px-2 text-red-600 hover:bg-red-50"
-                                >
-                                  <UserX className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
+
+                        {filteredEmployees.length === 0 && (
+                          <div className="text-center py-8 text-gray-500">
+                            <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                            <p>No employees found for the selected filters</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
