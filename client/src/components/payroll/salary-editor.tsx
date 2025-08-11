@@ -23,6 +23,16 @@ const salaryComponentTypes = [
 
 const frequencyOptions = ["monthly", "quarterly", "yearly", "one_time"];
 
+interface SalaryComponentData {
+  id: string;
+  componentType: string;
+  amount: number;
+  frequency: string;
+  financialYear: string;
+  effectiveFrom: string;
+  isActive: boolean;
+}
+
 export function SalaryEditor({ employee }: SalaryEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editingComponent, setEditingComponent] = useState<string | null>(null);
@@ -46,9 +56,12 @@ export function SalaryEditor({ employee }: SalaryEditorProps) {
       return apiRequest("/api/salary-components", {
         method: "POST",
         body: JSON.stringify({
-          ...componentData,
           employeeId: employee.id,
+          componentType: componentData.componentType,
           amount: parseFloat(componentData.amount),
+          frequency: componentData.frequency,
+          financialYear: componentData.financialYear,
+          effectiveFrom: new Date(componentData.effectiveFrom).getTime(),
           isActive: true
         }),
       });
@@ -90,7 +103,7 @@ export function SalaryEditor({ employee }: SalaryEditorProps) {
   };
 
   const calculateTotalSalary = () => {
-    return salaryComponents?.reduce((total: number, component: SalaryComponents) => {
+    return salaryComponents?.reduce((total: number, component: SalaryComponentData) => {
       if (component.frequency === "monthly") {
         return total + component.amount;
       } else if (component.frequency === "yearly") {
@@ -209,7 +222,7 @@ export function SalaryEditor({ employee }: SalaryEditorProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salaryComponents?.map((component: SalaryComponents) => (
+                {salaryComponents?.map((component: SalaryComponentData) => (
                   <TableRow key={component.id}>
                     <TableCell className="font-medium">
                       {component.componentType.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}

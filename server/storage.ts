@@ -700,6 +700,99 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  async getPayslips(filters: any): Promise<Payslips[]> {
+    let query = this.db.select().from(payslips);
+    
+    const conditions = [];
+    if (filters.employeeId) conditions.push(eq(payslips.employeeId, filters.employeeId));
+    if (filters.payPeriod) conditions.push(eq(payslips.payPeriod, filters.payPeriod));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query;
+  }
+
+  async createPayslip(payslip: InsertPayslips): Promise<Payslips> {
+    const [result] = await this.db.insert(payslips).values(payslip).returning();
+    return result;
+  }
+
+  async getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]> {
+    let query = this.db.select().from(employeeLoans);
+    if (employeeId) {
+      query = query.where(eq(employeeLoans.employeeId, employeeId));
+    }
+    return await query;
+  }
+
+  async createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans> {
+    const [result] = await this.db.insert(employeeLoans).values(loan).returning();
+    return result;
+  }
+
+  async updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined> {
+    const [result] = await this.db.update(employeeLoans)
+      .set({ ...loan, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(employeeLoans.id, id))
+      .returning();
+    return result;
+  }
+
+  async getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]> {
+    let query = this.db.select().from(salaryAdvances);
+    if (employeeId) {
+      query = query.where(eq(salaryAdvances.employeeId, employeeId));
+    }
+    return await query;
+  }
+
+  async createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances> {
+    const [result] = await this.db.insert(salaryAdvances).values(advance).returning();
+    return result;
+  }
+
+  async getComplianceReports(filters: any): Promise<ComplianceReports[]> {
+    let query = this.db.select().from(complianceReports);
+    
+    const conditions = [];
+    if (filters.reportType) conditions.push(eq(complianceReports.reportType, filters.reportType));
+    if (filters.financialYear) conditions.push(eq(complianceReports.financialYear, filters.financialYear));
+    
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query;
+  }
+
+  async createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports> {
+    const [result] = await this.db.insert(complianceReports).values(report).returning();
+    return result;
+  }
+
+  async getNotifications(employeeId?: string): Promise<Notifications[]> {
+    let query = this.db.select().from(notifications);
+    if (employeeId) {
+      query = query.where(eq(notifications.employeeId, employeeId));
+    }
+    return await query.orderBy(notifications.createdAt);
+  }
+
+  async createNotification(notification: InsertNotifications): Promise<Notifications> {
+    const [result] = await this.db.insert(notifications).values(notification).returning();
+    return result;
+  }
+
+  async updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined> {
+    const [result] = await this.db.update(notifications)
+      .set(notification)
+      .where(eq(notifications.id, id))
+      .returning();
+    return result;
+  }
+
   async updateTdsConfiguration(id: string, config: Partial<InsertTdsConfiguration>): Promise<TdsConfiguration | undefined> {
     const [result] = await this.db.update(tdsConfiguration)
       .set(config)
