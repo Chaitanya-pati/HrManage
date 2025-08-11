@@ -350,12 +350,18 @@ export default function Attendance() {
                   </SelectContent>
                 </Select>
                 {/* Request Leave Button */}
-                <Link href="/leaves">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Request Leave
-                  </Button>
-                </Link>
+                <Button 
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Attempting navigation to /leaves');
+                    window.location.href = window.location.origin + '/leaves';
+                  }}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Request Leave
+                </Button>
               </div>
             </div>
 
