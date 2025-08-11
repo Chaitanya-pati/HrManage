@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (2025-08-11)
 
+### Bulk Attendance Selection Feature (2025-08-11)
+- **Added comprehensive bulk attendance management** for when biometric devices are offline
+- **Created new "Bulk Selection" view** in Time & Attendance section with employee checkboxes
+- **Implemented search and filter functionality** (by name, ID, department, attendance status)
+- **Bulk mark present/absent actions** for multiple employees simultaneously
+- **Visual status indicators** showing current attendance for each employee
+- **Date picker support** for marking attendance on any date
+- **Select all/none functionality** for efficient mass operations
+- **Integration with existing attendance API** and real-time data updates
+- **Special offline device indicators** with clear notes for manual entries
+
 ### Database Population and Testing (2025-08-11)
 - **Added 10 dummy employees** named Hanamant 1-10 with employee IDs EMP101-EMP110
 - **Complete employee profiles** with realistic data including addresses, contact information, and salary details
