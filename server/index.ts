@@ -5,7 +5,9 @@ import helmet from 'helmet'; // Assuming helmet and cors are intended to be used
 import cors from 'cors'; // Assuming helmet and cors are intended to be used as per the changes snippet
 
 const app = express();
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP for development
+}));
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
