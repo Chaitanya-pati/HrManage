@@ -351,7 +351,10 @@ export const applications = sqliteTable("applications", {
 // Insert schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const insertDepartmentSchema = createInsertSchema(departments);
-export const insertEmployeeSchema = createInsertSchema(employees);
+export const insertEmployeeSchema = createInsertSchema(employees, {
+  dateOfBirth: z.coerce.date().optional(),
+  hireDate: z.coerce.date().optional(),
+});
 export const insertShiftSchema = createInsertSchema(shifts);
 export const insertAttendanceSchema = createInsertSchema(attendance);
 export const insertLeaveSchema = createInsertSchema(leaves, {
