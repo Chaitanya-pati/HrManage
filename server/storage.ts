@@ -227,17 +227,21 @@ export class DatabaseStorage implements IStorage {
 
   // Leaves
   async getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]> {
-    let query = db.select().from(leaves);
+    const conditions = [];
     
     if (filters?.employeeId) {
-      query = query.where(eq(leaves.employeeId, filters.employeeId));
+      conditions.push(eq(leaves.employeeId, filters.employeeId));
     }
     
     if (filters?.status) {
-      query = query.where(eq(leaves.status, filters.status));
+      conditions.push(eq(leaves.status, filters.status));
     }
     
-    return await query.orderBy(desc(leaves.createdAt));
+    if (conditions.length > 0) {
+      return await db.select().from(leaves).where(and(...conditions)).orderBy(desc(leaves.createdAt));
+    }
+    
+    return await db.select().from(leaves).orderBy(desc(leaves.createdAt));
   }
 
   async createLeave(leave: InsertLeave): Promise<Leave> {
@@ -253,13 +257,25 @@ export class DatabaseStorage implements IStorage {
 
   // Payroll
   async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> {
-    let query = db.select().from(payroll);
+    const conditions = [];
     
     if (filters?.employeeId) {
-      query = query.where(eq(payroll.employeeId, filters.employeeId));
+      conditions.push(eq(payroll.employeeId, filters.employeeId));
     }
     
-    return await query.orderBy(desc(payroll.year), desc(payroll.month));
+    if (filters?.month) {
+      conditions.push(eq(payroll.month, filters.month));
+    }
+    
+    if (filters?.year) {
+      conditions.push(eq(payroll.year, filters.year));
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(payroll).where(and(...conditions)).orderBy(desc(payroll.year), desc(payroll.month));
+    }
+    
+    return await db.select().from(payroll).orderBy(desc(payroll.year), desc(payroll.month));
   }
 
   async createPayroll(payrollData: InsertPayroll): Promise<Payroll> {
@@ -275,13 +291,17 @@ export class DatabaseStorage implements IStorage {
 
   // Performance
   async getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]> {
-    let query = db.select().from(performance);
+    const conditions = [];
     
     if (filters?.employeeId) {
-      query = query.where(eq(performance.employeeId, filters.employeeId));
+      conditions.push(eq(performance.employeeId, filters.employeeId));
     }
     
-    return await query.orderBy(desc(performance.createdAt));
+    if (conditions.length > 0) {
+      return await db.select().from(performance).where(and(...conditions)).orderBy(desc(performance.createdAt));
+    }
+    
+    return await db.select().from(performance).orderBy(desc(performance.createdAt));
   }
 
   async createPerformance(performanceData: InsertPerformance): Promise<Performance> {
@@ -328,13 +348,11 @@ export class DatabaseStorage implements IStorage {
 
   // Applications
   async getApplications(jobId?: string): Promise<Application[]> {
-    let query = db.select().from(applications);
-    
     if (jobId) {
-      query = query.where(eq(applications.jobId, jobId));
+      return await db.select().from(applications).where(eq(applications.jobId, jobId)).orderBy(desc(applications.submittedAt));
     }
     
-    return await query.orderBy(desc(applications.submittedAt));
+    return await db.select().from(applications).orderBy(desc(applications.submittedAt));
   }
 
   async getApplication(id: string): Promise<Application | undefined> {

@@ -266,16 +266,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const leave = await storage.createLeave(result.data);
-
-      await storage.createActivity({
-        type: "leave",
-        title: "Leave request submitted",
-        description: `Leave request for ${result.data.type} submitted`,
-        entityType: "leave",
-        entityId: leave.id,
-        userId: null,
-      });
-
       res.status(201).json(leave);
     } catch (error) {
       console.error("Error creating leave:", error);

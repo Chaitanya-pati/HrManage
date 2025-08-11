@@ -354,7 +354,10 @@ export const insertDepartmentSchema = createInsertSchema(departments);
 export const insertEmployeeSchema = createInsertSchema(employees);
 export const insertShiftSchema = createInsertSchema(shifts);
 export const insertAttendanceSchema = createInsertSchema(attendance);
-export const insertLeaveSchema = createInsertSchema(leaves);
+export const insertLeaveSchema = createInsertSchema(leaves, {
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+});
 export const insertPayrollSchema = createInsertSchema(payroll);
 export const insertPerformanceSchema = createInsertSchema(performance);
 export const insertJobOpeningSchema = createInsertSchema(jobOpenings);
