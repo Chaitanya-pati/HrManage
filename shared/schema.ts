@@ -356,7 +356,16 @@ export const insertEmployeeSchema = createInsertSchema(employees, {
   hireDate: z.coerce.date().optional(),
 });
 export const insertShiftSchema = createInsertSchema(shifts);
-export const insertAttendanceSchema = createInsertSchema(attendance);
+export const insertAttendanceSchema = createInsertSchema(attendance, {
+  date: z.coerce.date(),
+  checkIn: z.coerce.date().optional(),
+  checkOut: z.coerce.date().optional(),
+  gateEntry: z.coerce.date().optional(),
+  gateExit: z.coerce.date().optional(),
+  breakStart: z.coerce.date().optional(),
+  breakEnd: z.coerce.date().optional(),
+  overtimeApprovedAt: z.coerce.date().optional(),
+});
 export const insertLeaveSchema = createInsertSchema(leaves, {
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
