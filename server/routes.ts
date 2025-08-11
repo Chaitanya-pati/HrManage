@@ -673,6 +673,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Salary Slips API
+  app.get("/api/salary-slips", async (req, res) => {
+    try {
+      const { employeeId, payrollId } = req.query;
+      const filters: any = {};
+      
+      if (employeeId) filters.employeeId = employeeId as string;
+      if (payrollId) filters.payrollId = payrollId as string;
+
+      const salarySlips = await storage.getSalarySlips(filters);
+      res.json(salarySlips);
+    } catch (error) {
+      console.error("Error fetching salary slips:", error);
+      res.status(500).json({ message: "Failed to fetch salary slips" });
+    }
+  });
+
+  app.post("/api/salary-slips", async (req, res) => {
+    try {
+      const salarySlip = await storage.createSalarySlip(req.body);
+      res.status(201).json(salarySlip);
+    } catch (error) {
+      console.error("Error creating salary slip:", error);
+      res.status(500).json({ message: "Failed to create salary slip" });
+    }
+  });
+
   const server = createServer(app);
   return server;
 }

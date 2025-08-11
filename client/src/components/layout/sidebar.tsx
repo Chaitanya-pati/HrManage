@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Building2,
   UserCheck,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarProps {

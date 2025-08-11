@@ -8,6 +8,7 @@ import Employees from "@/pages/employees";
 import EmployeeBenefits from "@/pages/employee-benefits";
 import Attendance from "@/pages/attendance";
 import Payroll from "@/pages/payroll";
+import Payslips from "@/pages/payslips";
 import Performance from "@/pages/performance";
 import Organization from "@/pages/organization";
 import Recruitment from "@/pages/recruitment";
@@ -32,6 +33,8 @@ function Router() {
       <Route path="/leaves" component={Leaves} />
       <Route path="/shifts" component={Shifts} />
       <Route path="/payroll" component={Payroll} />
+      <Route path="/payslips" component={Payslips} />
+      <Route path="/performance" component={Performance} />
       <Route path="/benefits"
         component={() =>
           <PlaceholderPage
@@ -50,7 +53,6 @@ function Router() {
           />
         }
       />
-      <Route path="/performance" component={Performance} />
       <Route path="/learning"
         component={() =>
           <PlaceholderPage

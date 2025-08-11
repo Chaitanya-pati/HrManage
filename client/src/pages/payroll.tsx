@@ -309,13 +309,16 @@ export default function PayrollPage() {
                                 {getStatusBadge(payroll.status)}
                               </td>
                               <td className="py-3 px-4">
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  data-testid={`generate-payslip-${payroll.id}`}
-                                >
-                                  <FileText size={16} />
-                                </Button>
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => window.open(`/payslips?employeeId=${payroll.employeeId}&month=${selectedMonth}&year=${selectedYear}`, '_blank')}
+                                    data-testid={`view-payslip-${payroll.id}`}
+                                  >
+                                    <FileText size={16} />
+                                  </Button>
+                                </div>
                               </td>
                             </tr>
                           ))
