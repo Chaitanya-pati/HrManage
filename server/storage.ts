@@ -237,17 +237,45 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(leaves.status, filters.status));
     }
     
+    let result;
     if (conditions.length > 0) {
-      return await db.select().from(leaves).where(and(...conditions)).orderBy(desc(leaves.createdAt));
+      result = await db.select().from(leaves).where(and(...conditions)).orderBy(desc(leaves.createdAt));
+    } else {
+      result = await db.select().from(leaves).orderBy(desc(leaves.createdAt));
     }
     
-    return await db.select().from(leaves).orderBy(desc(leaves.createdAt));
+    // Convert timestamps back to Date objects
+    return result.map(leave => ({
+      ...leave,
+      startDate: new Date(leave.startDate * 1000),
+      endDate: new Date(leave.endDate * 1000),
+      createdAt: new Date(leave.createdAt * 1000),
+      approvedAt: leave.approvedAt ? new Date(leave.approvedAt * 1000) : null
+    }));
   }
 
   async createLeave(leave: InsertLeave): Promise<Leave> {
     const id = randomUUID();
-    const result = await db.insert(leaves).values({ ...leave, id }).returning();
-    return result[0];
+    
+    // Convert dates to timestamps for SQLite storage
+    const leaveData = {
+      ...leave,
+      id,
+      startDate: Math.floor(new Date(leave.startDate).getTime() / 1000),
+      endDate: Math.floor(new Date(leave.endDate).getTime() / 1000),
+      createdAt: Math.floor(Date.now() / 1000)
+    };
+    
+    const result = await db.insert(leaves).values(leaveData as any).returning();
+    
+    // Convert timestamps back to Date objects for response
+    return {
+      ...result[0],
+      startDate: new Date(result[0].startDate * 1000),
+      endDate: new Date(result[0].endDate * 1000),
+      createdAt: new Date(result[0].createdAt * 1000),
+      approvedAt: result[0].approvedAt ? new Date(result[0].approvedAt * 1000) : null
+    };
   }
 
   async updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined> {
