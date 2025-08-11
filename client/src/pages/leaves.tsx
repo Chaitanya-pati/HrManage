@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
@@ -26,7 +25,7 @@ export default function LeavesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [halfDayType, setHalfDayType] = useState("");
-  
+
   const queryClient = useQueryClient();
 
   const { data: employees } = useQuery({
@@ -64,7 +63,7 @@ export default function LeavesPage() {
     const end = new Date(endDate);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    
+
     // If it's a half day, return 0.5 for single day, otherwise calculate normally
     if (isHalfDay && diffDays === 1) {
       return 0.5;
@@ -99,17 +98,24 @@ export default function LeavesPage() {
 
   const handleSubmitLeave = async () => {
     if (!leaveType || !startDate || !endDate || !reason || !selectedEmployee) {
-      alert("Please fill in all required fields");
+      alert('Please fill in all required fields');
       return;
     }
 
     if (isHalfDay && !halfDayType) {
-      alert("Please select half day type (Morning or Evening)");
+      alert('Please select half day type (Morning or Evening)');
       return;
     }
 
     if (isHalfDay && startDate !== endDate) {
-      alert("Half day leave must be for a single day only");
+      alert('Half day leave must be for a single day only');
+      return;
+    }
+
+    // Validate that the selected employee exists
+    const selectedEmp = Array.isArray(employees) ? employees.find((emp: any) => emp.id === selectedEmployee) : null;
+    if (!selectedEmp) {
+      alert('Please select a valid employee');
       return;
     }
 
@@ -119,38 +125,47 @@ export default function LeavesPage() {
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       days: calculateDays(),
-      isHalfDay,
+      isHalfDay: isHalfDay,
       halfDayType: isHalfDay ? halfDayType : null,
-      reason,
-      status: "pending"
+      reason: reason,
+      status: 'pending'
     };
 
     try {
+      console.log('Submitting leave data:', leaveData);
+      console.log('Available employees:', employees);
+
       let response;
       if (isEditMode) {
         response = await fetch(`/api/leaves/${editingLeaveId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(leaveData),
         });
       } else {
-        response = await fetch("/api/leaves", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        response = await fetch('/api/leaves', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify(leaveData),
         });
       }
 
       if (response.ok) {
-        alert(isEditMode ? "Leave request updated successfully!" : "Leave request submitted successfully!");
-        handleDialogClose(false);
-        await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
+        alert(isEditMode ? 'Leave request updated successfully!' : 'Leave request submitted successfully!');
+        setIsDialogOpen(false);
+        resetForm();
+        await queryClient.invalidateQueries({ queryKey: ['/api/leaves'] });
       } else {
-        const error = await response.json();
-        alert(`Failed to ${isEditMode ? 'update' : 'submit'} leave request: ${error.message}`);
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        alert(`Failed to ${isEditMode ? 'update' : 'submit'} leave request: ${errorData.message}`);
       }
     } catch (error) {
-      console.error("Error submitting leave request:", error);
+      console.error('Error submitting leave request:', error);
       alert(`Error ${isEditMode ? 'updating' : 'submitting'} leave request`);
     }
   };
@@ -226,13 +241,13 @@ export default function LeavesPage() {
   return (
     <div className="flex h-screen bg-hrms-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Leave Management" 
           onMenuClick={() => setSidebarOpen(true)} 
         />
-        
+
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -266,11 +281,15 @@ export default function LeavesPage() {
                           <SelectValue placeholder="Select employee" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Array.isArray(employees) ? employees.map((emp: any) => (
-                            <SelectItem key={emp.id} value={emp.id}>
-                              {emp.firstName} {emp.lastName} ({emp.employeeId})
+                          {Array.isArray(employees) && employees.length > 0 ? employees.map((employee: any) => (
+                            <SelectItem key={employee.id} value={employee.id}>
+                              {employee.firstName} {employee.lastName} ({employee.employeeId})
                             </SelectItem>
-                          )) : null}
+                          )) : (
+                            <SelectItem value="no-employees" disabled>
+                              No employees found
+                            </SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
