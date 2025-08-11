@@ -10,7 +10,7 @@ import Attendance from "@/pages/attendance";
 import Payroll from "@/pages/payroll";
 import AdvancedPayroll from "@/pages/AdvancedPayroll";
 import PayrollDemo from "@/pages/PayrollDemo";
-import RealTimePayslip from "@/components/payroll/real-time-payslip";
+import ExactPayslipGenerator from "@/components/payroll/exact-payslip-generator";
 import Payslips from "@/pages/payslips";
 import Performance from "@/pages/performance";
 import Organization from "@/pages/organization";
@@ -37,7 +37,7 @@ function Router() {
       <Route path="/shifts" component={Shifts} />
       <Route path="/payroll" component={Payroll} />
       <Route path="/advanced-payroll" component={PayrollDemo} />
-      <Route path="/payslip-generator" component={RealTimePayslip} />
+      <Route path="/payslip-generator" component={ExactPayslipGenerator} />
       <Route path="/payslips" component={Payslips} />
       <Route path="/performance" component={Performance} />
       <Route path="/benefits"
