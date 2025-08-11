@@ -22,7 +22,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Download, Mail, Phone } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { EmployeeBenefitsTab } from "@/components/employee-benefits-tab";
+import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Download, Mail, Phone, DollarSign, Settings } from "lucide-react";
 
 interface EmployeeListProps {
   employees: (Employee & { department?: { name: string } })[];
@@ -85,6 +87,7 @@ const getInitials = (firstName: string, lastName: string) => {
 export default function EmployeeList({ employees, isLoading }: EmployeeListProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [selectedEmployeeForBenefits, setSelectedEmployeeForBenefits] = useState<Employee | null>(null);
 
   // Debug: Log the received employees
   console.log('EmployeeList received employees:', employees?.length, employees);
@@ -330,6 +333,13 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Employee
                           </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="flex items-center"
+                            onClick={() => setSelectedEmployeeForBenefits(employee)}
+                          >
+                            <DollarSign className="mr-2 h-4 w-4" />
+                            Benefits & Allowances
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="flex items-center text-red-600">
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -345,6 +355,29 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
           </div>
         )}
       </CardContent>
+
+      {/* Benefits Dialog */}
+      <Dialog 
+        open={!!selectedEmployeeForBenefits} 
+        onOpenChange={(open) => !open && setSelectedEmployeeForBenefits(null)}
+      >
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Employee Benefits & Allowances
+            </DialogTitle>
+            <DialogDescription>
+              {selectedEmployeeForBenefits && (
+                <>Manage benefits and allowances for {selectedEmployeeForBenefits.firstName} {selectedEmployeeForBenefits.lastName} ({selectedEmployeeForBenefits.employeeId})</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEmployeeForBenefits && (
+            <EmployeeBenefitsTab employeeId={selectedEmployeeForBenefits.id} />
+          )}
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
