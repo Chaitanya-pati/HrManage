@@ -143,8 +143,7 @@ export default function LeavesPage() {
 
       if (response.ok) {
         alert(isEditMode ? "Leave request updated successfully!" : "Leave request submitted successfully!");
-        setIsDialogOpen(false);
-        resetForm();
+        handleDialogClose(false);
         await queryClient.invalidateQueries({ queryKey: ["/api/leaves"] });
       } else {
         const error = await response.json();
@@ -217,9 +216,11 @@ export default function LeavesPage() {
     }
   };
 
-  const handleDialogClose = () => {
-    setIsDialogOpen(false);
-    resetForm();
+  const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
+    if (!open) {
+      resetForm();
+    }
   };
 
   return (
@@ -242,7 +243,10 @@ export default function LeavesPage() {
               </div>
               <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
                 <DialogTrigger asChild>
-                  <Button data-testid="request-leave-button">
+                  <Button 
+                    data-testid="request-leave-button"
+                    onClick={() => setIsDialogOpen(true)}
+                  >
                     <Plus size={16} className="mr-2" />
                     Request Leave
                   </Button>
@@ -359,7 +363,7 @@ export default function LeavesPage() {
                   <div className="flex justify-end space-x-2">
                     <Button
                       variant="outline"
-                      onClick={handleDialogClose}
+                      onClick={() => handleDialogClose(false)}
                     >
                       Cancel
                     </Button>
