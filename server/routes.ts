@@ -973,6 +973,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Reports API Routes
+  app.get("/api/reports/data", async (req, res) => {
+    try {
+      const { reportType, employeeId, startDate, endDate } = req.query;
+      
+      let reportData = {};
+      
+      switch (reportType) {
+        case 'monthly-payslips':
+          reportData = await storage.getPayroll({
+            employeeId: employeeId as string,
+            month: startDate ? new Date(startDate as string).getMonth() + 1 : undefined,
+            year: startDate ? new Date(startDate as string).getFullYear() : undefined
+          });
+          break;
+          
+        case 'attendance-summary':
+          reportData = await storage.getAttendance({
+            employeeId: employeeId as string,
+            startDate: startDate ? new Date(startDate as string) : undefined,
+            endDate: endDate ? new Date(endDate as string) : undefined
+          });
+          break;
+          
+        case 'late-coming-report':
+          const allAttendance = await storage.getAttendance({
+            startDate: startDate ? new Date(startDate as string) : undefined,
+            endDate: endDate ? new Date(endDate as string) : undefined
+          });
+          reportData = allAttendance.filter((record: any) => record.status === 'late');
+          break;
+          
+        case 'employee-directory':
+          reportData = await storage.getEmployees();
+          break;
+          
+        case 'leave-balance':
+          reportData = await storage.getLeaves({ employeeId: employeeId as string });
+          break;
+          
+        default:
+          reportData = { message: "Report type not implemented yet" };
+      }
+      
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error generating report data:", error);
+      res.status(500).json({ message: "Failed to generate report data" });
+    }
+  });
+
+  app.get("/api/reports/summary", async (req, res) => {
+    try {
+      const employees = await storage.getEmployees();
+      const attendance = await storage.getAttendance({});
+      const payroll = await storage.getPayroll({});
+      const leaves = await storage.getLeaves({});
+      
+      const summary = {
+        totalEmployees: employees.length,
+        totalAttendanceRecords: attendance.length,
+        totalPayrollRecords: payroll.length,
+        totalLeaveRecords: leaves.length,
+        reportsGenerated: 15,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      res.json(summary);
+    } catch (error) {
+      console.error("Error generating report summary:", error);
+      res.status(500).json({ message: "Failed to generate report summary" });
+    }
+  });
+
   app.put("/api/notifications/:id", async (req, res) => {
     try {
       const { id } = req.params;

@@ -18,6 +18,8 @@ import Recruitment from "@/pages/recruitment";
 import Leaves from "@/pages/leaves";
 import Shifts from "./pages/shifts";
 import Analytics from "@/pages/analytics";
+import Reports from "@/pages/reports";
+import ReportDetail from "@/pages/report-detail";
 import Settings from "@/pages/settings";
 import PlaceholderPage from "@/pages/placeholder";
 import NotFound from "@/pages/not-found";
@@ -77,15 +79,10 @@ function Router() {
         }
       />
       <Route path="/analytics" component={Analytics} />
-      <Route path="/reports"
-        component={() =>
-          <PlaceholderPage
-            title="Reports"
-            subtitle="Generate comprehensive HR reports"
-            icon={<FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
-          />
-        }
-      />
+      <Route path="/reports" component={Reports} />
+      <Route path="/reports/:reportId">
+        {(params) => <ReportDetail reportId={params.reportId!} />}
+      </Route>
       <Route path="/settings" component={Settings} />
       <Route path="/users"
         component={() =>
