@@ -247,10 +247,10 @@ export class DatabaseStorage implements IStorage {
     // Convert Unix timestamps back to Date objects for frontend
     return result.map(leave => ({
       ...leave,
-      startDate: new Date(leave.startDate * 1000),
-      endDate: new Date(leave.endDate * 1000),
-      createdAt: new Date(leave.createdAt * 1000),
-      approvedAt: leave.approvedAt ? new Date(leave.approvedAt * 1000) : null
+      startDate: new Date((leave.startDate as number) * 1000),
+      endDate: new Date((leave.endDate as number) * 1000),
+      createdAt: leave.createdAt ? new Date((leave.createdAt as number) * 1000) : new Date(),
+      approvedAt: leave.approvedAt ? new Date((leave.approvedAt as number) * 1000) : null
     })) as Leave[];
   }
 
@@ -271,16 +271,34 @@ export class DatabaseStorage implements IStorage {
     // Convert back to Date objects for frontend
     return {
       ...result[0],
-      startDate: new Date(result[0].startDate * 1000),
-      endDate: new Date(result[0].endDate * 1000),
-      createdAt: new Date(result[0].createdAt * 1000),
-      approvedAt: result[0].approvedAt ? new Date(result[0].approvedAt * 1000) : null
+      startDate: new Date((result[0].startDate as number) * 1000),
+      endDate: new Date((result[0].endDate as number) * 1000),
+      createdAt: result[0].createdAt ? new Date((result[0].createdAt as number) * 1000) : new Date(),
+      approvedAt: result[0].approvedAt ? new Date((result[0].approvedAt as number) * 1000) : null
     } as Leave;
   }
 
   async updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined> {
-    const result = await db.update(leaves).set(leave).where(eq(leaves.id, id)).returning();
-    return result[0];
+    // Convert date fields to timestamps if they exist
+    const updateData: any = { ...leave };
+    if (leave.startDate) {
+      updateData.startDate = Math.floor(new Date(leave.startDate).getTime() / 1000);
+    }
+    if (leave.endDate) {
+      updateData.endDate = Math.floor(new Date(leave.endDate).getTime() / 1000);
+    }
+    
+    const result = await db.update(leaves).set(updateData).where(eq(leaves.id, id)).returning();
+    if (result[0]) {
+      return {
+        ...result[0],
+        startDate: new Date((result[0].startDate as number) * 1000),
+        endDate: new Date((result[0].endDate as number) * 1000),
+        createdAt: result[0].createdAt ? new Date((result[0].createdAt as number) * 1000) : new Date(),
+        approvedAt: result[0].approvedAt ? new Date((result[0].approvedAt as number) * 1000) : null
+      } as Leave;
+    }
+    return undefined;
   }
 
   // Payroll

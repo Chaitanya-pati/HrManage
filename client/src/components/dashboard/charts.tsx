@@ -10,17 +10,27 @@ interface ChartsProps {
 export default function Charts({ metrics, isLoading }: ChartsProps) {
   const attendanceChartRef = useRef<HTMLCanvasElement>(null);
   const departmentChartRef = useRef<HTMLCanvasElement>(null);
+  const attendanceChartInstance = useRef<any>(null);
+  const departmentChartInstance = useRef<any>(null);
 
   useEffect(() => {
     if (!metrics || isLoading || !metrics.attendanceTrend || !metrics.departmentDistribution) return;
 
     // Dynamically import Chart.js to avoid SSR issues
     import('chart.js/auto').then(({ default: Chart }) => {
+      // Destroy existing charts before creating new ones
+      if (attendanceChartInstance.current) {
+        attendanceChartInstance.current.destroy();
+      }
+      if (departmentChartInstance.current) {
+        departmentChartInstance.current.destroy();
+      }
+
       // Attendance Chart
       if (attendanceChartRef.current) {
         const attendanceCtx = attendanceChartRef.current.getContext('2d');
         if (attendanceCtx) {
-          new Chart(attendanceCtx, {
+          attendanceChartInstance.current = new Chart(attendanceCtx, {
             type: 'line',
             data: {
               labels: metrics.attendanceTrend?.map(item => item.date) || [],
@@ -61,7 +71,7 @@ export default function Charts({ metrics, isLoading }: ChartsProps) {
       if (departmentChartRef.current) {
         const departmentCtx = departmentChartRef.current.getContext('2d');
         if (departmentCtx) {
-          new Chart(departmentCtx, {
+          departmentChartInstance.current = new Chart(departmentCtx, {
             type: 'doughnut',
             data: {
               labels: metrics.departmentDistribution?.map(dept => dept.name) || [],
@@ -94,6 +104,16 @@ export default function Charts({ metrics, isLoading }: ChartsProps) {
         }
       }
     });
+
+    // Cleanup function to destroy charts on unmount
+    return () => {
+      if (attendanceChartInstance.current) {
+        attendanceChartInstance.current.destroy();
+      }
+      if (departmentChartInstance.current) {
+        departmentChartInstance.current.destroy();
+      }
+    };
   }, [metrics, isLoading]);
 
   if (isLoading) {
