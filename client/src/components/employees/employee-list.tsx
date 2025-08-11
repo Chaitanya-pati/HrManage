@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { EmployeeWithDepartment } from "@shared/schema";
+import { Employee } from "@shared/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ import {
 import { Search, Plus, MoreHorizontal, Eye, Edit, Trash2, Users, Download, Mail, Phone } from "lucide-react";
 
 interface EmployeeListProps {
-  employees: EmployeeWithDepartment[];
+  employees: (Employee & { department?: { name: string } })[];
   isLoading: boolean;
 }
 
