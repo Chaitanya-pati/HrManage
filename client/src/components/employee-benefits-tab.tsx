@@ -266,7 +266,7 @@ export function EmployeeBenefitsTab({ employeeId }: EmployeeBenefitsTabProps) {
                     <CardTitle className="text-lg flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-green-600" />
                       {allowanceTypes.find(type => type.value === allowance.allowanceType)?.label || 
-                       allowance.allowanceType.charAt(0).toUpperCase() + allowance.allowanceType.slice(1) + " Allowance"}
+                       (allowance.allowanceType ? allowance.allowanceType.charAt(0).toUpperCase() + allowance.allowanceType.slice(1) + " Allowance" : "Unknown Allowance")}
                     </CardTitle>
                     <CardDescription>
                       {allowance.description || `${allowance.frequency} allowance payment`}
