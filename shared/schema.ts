@@ -165,19 +165,130 @@ export const payroll = sqliteTable("payroll", {
   employeeId: text("employee_id").notNull(),
   payPeriodStart: text("pay_period_start").notNull(),
   payPeriodEnd: text("pay_period_end").notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
   baseSalary: numeric("base_salary").notNull(),
-  allowances: text("allowances"),
-  deductions: text("deductions"),
+  allowances: text("allowances"), // JSON string of allowance breakdown
+  deductions: text("deductions"), // JSON string of deduction breakdown
   overtimePay: numeric("overtime_pay").default("0"),
+  overtimeHours: numeric("overtime_hours").default("0"),
   grossPay: numeric("gross_pay").notNull(),
   taxDeductions: numeric("tax_deductions").default("0"),
+  pfDeduction: numeric("pf_deduction").default("0"),
+  esiDeduction: numeric("esi_deduction").default("0"),
   netPay: numeric("net_pay").notNull(),
   payrollStatus: text("payroll_status").notNull().default("draft"),
   processedAt: text("processed_at"),
+  processedBy: text("processed_by"),
   paidAt: text("paid_at"),
   payslipGenerated: integer("payslip_generated", { mode: 'boolean' }).default(false),
+  bankTransferStatus: text("bank_transfer_status").default("pending"),
+  remarks: text("remarks"),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Salary Components - for flexible salary structure management
+export const salaryComponents = sqliteTable("salary_components", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  componentName: text("component_name").notNull(), // "Basic", "HRA", "DA", "Medical", etc.
+  componentType: text("component_type").notNull(), // "allowance", "deduction"
+  amount: numeric("amount").notNull(),
+  percentage: numeric("percentage"), // If percentage-based
+  isPercentage: integer("is_percentage", { mode: 'boolean' }).default(false),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  effectiveFrom: text("effective_from").notNull(),
+  effectiveTo: text("effective_to"),
+  taxable: integer("taxable", { mode: 'boolean' }).default(true),
+  pfApplicable: integer("pf_applicable", { mode: 'boolean' }).default(false),
+  esiApplicable: integer("esi_applicable", { mode: 'boolean' }).default(false),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// TDS Configuration - for tax calculation
+export const tdsConfiguration = sqliteTable("tds_configuration", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  financialYear: text("financial_year").notNull(),
+  slabFrom: numeric("slab_from").notNull(),
+  slabTo: numeric("slab_to"),
+  taxRate: numeric("tax_rate").notNull(),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Payslips - for PDF generation and storage
+export const payslips = sqliteTable("payslips", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  payrollId: text("payroll_id").notNull(),
+  employeeId: text("employee_id").notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  pdfPath: text("pdf_path"),
+  emailSent: integer("email_sent", { mode: 'boolean' }).default(false),
+  downloadCount: integer("download_count").default(0),
+  generatedAt: text("generated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Employee Loans - for loan deduction management
+export const employeeLoans = sqliteTable("employee_loans", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  loanType: text("loan_type").notNull(),
+  loanAmount: numeric("loan_amount").notNull(),
+  interestRate: numeric("interest_rate").default("0"),
+  emiAmount: numeric("emi_amount").notNull(),
+  remainingAmount: numeric("remaining_amount").notNull(),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  status: text("status").notNull().default("active"),
+  approvedBy: text("approved_by"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Salary Advances - for advance salary management
+export const salaryAdvances = sqliteTable("salary_advances", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  advanceAmount: numeric("advance_amount").notNull(),
+  remainingAmount: numeric("remaining_amount").notNull(),
+  deductionAmount: numeric("deduction_amount").notNull(),
+  reason: text("reason").notNull(),
+  requestDate: text("request_date").notNull(),
+  approvedDate: text("approved_date"),
+  approvedBy: text("approved_by"),
+  status: text("status").notNull().default("pending"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Compliance Reports - for government reporting
+export const complianceReports = sqliteTable("compliance_reports", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  reportType: text("report_type").notNull(), // "PF", "ESI", "TDS", "Form16"
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  filePath: text("file_path"),
+  status: text("status").notNull().default("pending"),
+  generatedAt: text("generated_at"),
+  submittedAt: text("submitted_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Notifications - for payroll notifications
+export const notifications = sqliteTable("notifications", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id"),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // "payslip", "deduction", "bonus", "system"
+  priority: text("priority").notNull().default("medium"), // "low", "medium", "high"
+  isRead: integer("is_read", { mode: 'boolean' }).default(false),
+  readAt: text("read_at"),
+  actionRequired: integer("action_required", { mode: 'boolean' }).default(false),
+  actionUrl: text("action_url"),
+  expiresAt: text("expires_at"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const performance = sqliteTable("performance", {
