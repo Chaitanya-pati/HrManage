@@ -86,13 +86,13 @@ export default function LeavesPage() {
   const handleEditLeave = (leave: any) => {
     setIsEditMode(true);
     setEditingLeaveId(leave.id);
-    setLeaveType(leave.type);
+    setLeaveType(leave.leaveType);
     setStartDate(new Date(leave.startDate).toISOString().split('T')[0]);
     setEndDate(new Date(leave.endDate).toISOString().split('T')[0]);
     setReason(leave.reason);
     setSelectedEmployee(leave.employeeId);
     setIsHalfDay(leave.isHalfDay || false);
-    setHalfDayType(leave.halfDayType || "");
+    setHalfDayType(leave.halfDaySlot || "");
     setIsDialogOpen(true);
   };
 
@@ -126,12 +126,12 @@ export default function LeavesPage() {
 
     const leaveData = {
       employeeId: selectedEmployee,
-      type: leaveType,
+      leaveType: leaveType,
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       days: calculateDays(),
       isHalfDay: isHalfDay,
-      halfDayType: isHalfDay ? halfDayType : null,
+      halfDaySlot: isHalfDay ? halfDayType : null,
       reason: reason,
       status: 'pending'
     };
@@ -501,7 +501,7 @@ export default function LeavesPage() {
                             </div>
                           </td>
                           <td className="py-3 px-4" data-testid={`leave-type-${request.id}`}>
-                            {request.type}
+                            {request.leaveType}
                           </td>
                           <td className="py-3 px-4" data-testid={`start-date-${request.id}`}>
                             {new Date(request.startDate).toLocaleDateString()}
@@ -513,7 +513,7 @@ export default function LeavesPage() {
                             {request.days} day{request.days !== 1 ? 's' : ''}
                             {request.isHalfDay && (
                               <span className="ml-1 text-xs text-blue-600 font-medium">
-                                ({request.halfDayType} half)
+                                ({request.halfDaySlot} half)
                               </span>
                             )}
                           </td>
