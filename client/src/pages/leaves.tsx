@@ -129,7 +129,7 @@ export default function LeavesPage() {
       leaveType: leaveType,
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
-      days: calculateDays(),
+      days: calculateDays().toString(),
       isHalfDay: isHalfDay,
       halfDaySlot: isHalfDay ? halfDayType : null,
       reason: reason,
