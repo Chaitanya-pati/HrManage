@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -46,23 +46,23 @@ export default function PayrollPage() {
         const deductions = baseSalary * 0.15; // 15% deductions (tax, etc.)
         const netSalary = baseSalary + allowances - deductions;
 
+        const grossPay = baseSalary + (baseSalary * 0.1) + 1500 + 1000;
+        const netPay = grossPay - (baseSalary * 0.15);
+        
         await apiRequest("/api/payroll", {
           method: "POST",
           body: JSON.stringify({
             employeeId: employee.id,
             month: selectedMonth,
             year: selectedYear,
-            totalWorkingDays: 30,
-            daysPresent: 25,
-            daysAbsent: 5,
-            baseSalary: baseSalary,
-            hra: baseSalary * 0.1,
-            conveyanceAllowance: 1500,
-            medicalAllowance: 1000,
-            grossSalary: baseSalary + (baseSalary * 0.1) + 1500 + 1000,
-            totalDeductions: baseSalary * 0.15,
-            netSalary: (baseSalary + (baseSalary * 0.1) + 1500 + 1000) - (baseSalary * 0.15),
-            status: "processed"
+            payPeriodStart: `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`,
+            payPeriodEnd: `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-31`,
+            baseSalary: baseSalary.toString(),
+            grossPay: grossPay.toString(),
+            netPay: netPay.toString(),
+            allowances: (baseSalary * 0.2).toString(),
+            deductions: (baseSalary * 0.15).toString(),
+            payrollStatus: "processed"
           }),
         });
       }
@@ -70,8 +70,8 @@ export default function PayrollPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payroll"] });
       toast({
-        title: "Payroll processed",
-        description: "Payroll has been successfully processed for all employees.",
+        title: "Success!",
+        description: "Payroll has been run successfully!",
       });
     },
     onError: (error: any) => {
@@ -270,6 +270,37 @@ export default function PayrollPage() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Payroll Processing Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Payroll Processing</CardTitle>
+                    <CardDescription>Process payroll for all employees for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex space-x-4">
+                    <Button
+                      onClick={() => processPayrollMutation.mutate()}
+                      disabled={processPayrollMutation.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {processPayrollMutation.isPending ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <DollarSign className="mr-2 h-4 w-4" />
+                          Process Payroll
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" onClick={() => window.open('/payslip-generator', '_blank')}>
+                      <FileText className="mr-2 h-4 w-4" />
+                      Payslip Generator
+                    </Button>
+                  </CardContent>
+                </Card>
 
                 {/* Employee Selection for Advanced Features */}
                 <Card>
