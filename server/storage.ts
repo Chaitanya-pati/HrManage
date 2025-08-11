@@ -162,7 +162,15 @@ export class DatabaseStorage implements IStorage {
 
   async createEmployee(employee: InsertEmployee): Promise<Employee> {
     const id = randomUUID();
-    const result = await db.insert(employees).values({ ...employee, id }).returning();
+    const employeeData = {
+      ...employee,
+      id,
+      hireDate: employee.hireDate ? Math.floor(new Date(employee.hireDate).getTime() / 1000) : Math.floor(Date.now() / 1000),
+      dateOfBirth: employee.dateOfBirth ? Math.floor(new Date(employee.dateOfBirth).getTime() / 1000) : undefined,
+      probationEndDate: employee.probationEndDate ? Math.floor(new Date(employee.probationEndDate).getTime() / 1000) : undefined,
+      confirmationDate: employee.confirmationDate ? Math.floor(new Date(employee.confirmationDate).getTime() / 1000) : undefined,
+    };
+    const result = await db.insert(employees).values(employeeData as any).returning();
     return result[0];
   }
 
@@ -204,13 +212,25 @@ export class DatabaseStorage implements IStorage {
 
   // Attendance
   async getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]> {
-    let query = db.select().from(attendance);
+    const conditions = [];
     
     if (filters?.employeeId) {
-      query = query.where(eq(attendance.employeeId, filters.employeeId));
+      conditions.push(eq(attendance.employeeId, filters.employeeId));
     }
     
-    return await query.orderBy(desc(attendance.date));
+    if (filters?.startDate) {
+      conditions.push(sql`${attendance.date} >= ${Math.floor(filters.startDate.getTime() / 1000)}`);
+    }
+    
+    if (filters?.endDate) {
+      conditions.push(sql`${attendance.date} <= ${Math.floor(filters.endDate.getTime() / 1000)}`);
+    }
+    
+    if (conditions.length > 0) {
+      return await db.select().from(attendance).where(and(...conditions)).orderBy(desc(attendance.date));
+    } else {
+      return await db.select().from(attendance).orderBy(desc(attendance.date));
+    }
   }
 
   async getAttendanceById(id: string): Promise<Attendance | undefined> {
@@ -260,7 +280,7 @@ export class DatabaseStorage implements IStorage {
       endDate: new Date((leave.endDate as number) * 1000),
       createdAt: leave.createdAt ? new Date((leave.createdAt as number) * 1000) : new Date(),
       approvedAt: leave.approvedAt ? new Date((leave.approvedAt as number) * 1000) : null
-    })) as Leave[];
+    }));
   }
 
   async createLeave(leave: InsertLeave): Promise<Leave> {
@@ -284,7 +304,7 @@ export class DatabaseStorage implements IStorage {
       endDate: new Date((result[0].endDate as number) * 1000),
       createdAt: result[0].createdAt ? new Date((result[0].createdAt as number) * 1000) : new Date(),
       approvedAt: result[0].approvedAt ? new Date((result[0].approvedAt as number) * 1000) : null
-    } as Leave;
+    };
   }
 
   async updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined> {
@@ -305,7 +325,7 @@ export class DatabaseStorage implements IStorage {
         endDate: new Date((result[0].endDate as number) * 1000),
         createdAt: result[0].createdAt ? new Date((result[0].createdAt as number) * 1000) : new Date(),
         approvedAt: result[0].approvedAt ? new Date((result[0].approvedAt as number) * 1000) : null
-      } as Leave;
+      };
     }
     return undefined;
   }

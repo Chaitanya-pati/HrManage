@@ -4,6 +4,7 @@ import { useLocation, Link } from "wouter";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import TimeClock from "@/components/attendance/time-clock";
+import BulkAttendanceSelector from "@/components/attendance/bulk-attendance-selector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ import {
 export default function Attendance() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [view, setView] = useState<"overview" | "timeclock" | "reports" | "entry">("overview");
+  const [view, setView] = useState<"overview" | "timeclock" | "reports" | "entry" | "bulk">("overview");
   const [, setLocation] = useLocation();
 
   // Attendance entry form states
@@ -399,6 +400,7 @@ export default function Attendance() {
                     <SelectItem value="overview">Overview</SelectItem>
                     <SelectItem value="timeclock">Time Clock</SelectItem>
                     <SelectItem value="entry">Manual Entry</SelectItem>
+                    <SelectItem value="bulk">Bulk Selection</SelectItem>
                     <SelectItem value="reports">Reports</SelectItem>
                   </SelectContent>
                 </Select>
@@ -581,6 +583,13 @@ export default function Attendance() {
             {view === "timeclock" && (
               <div className="flex justify-center">
                 <TimeClock employee={currentEmployee} attendance={todayAttendance} />
+              </div>
+            )}
+
+            {/* Bulk Attendance Selection */}
+            {view === "bulk" && (
+              <div className="mt-6">
+                <BulkAttendanceSelector />
               </div>
             )}
 
