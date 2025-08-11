@@ -9,11 +9,19 @@ import {
   type Shift, type InsertShift,
   type JobOpening, type InsertJobOpening,
   type Application, type InsertApplication,
-  type EmployeeAllowance, type InsertEmployeeAllowance,
-  type EmployeeDeduction, type InsertEmployeeDeduction,
-  type EmployeeLeaveBalance, type InsertEmployeeLeaveBalance,
+  type EmployeeAllowances, type InsertEmployeeAllowances,
+  type EmployeeDeductions, type InsertEmployeeDeductions,
+  type EmployeeLeaveBalances, type InsertEmployeeLeaveBalances,
+  type SalaryComponents, type InsertSalaryComponents,
+  type TdsConfiguration, type InsertTdsConfiguration,
+  type Payslips, type InsertPayslips,
+  type EmployeeLoans, type InsertEmployeeLoans,
+  type SalaryAdvances, type InsertSalaryAdvances,
+  type ComplianceReports, type InsertComplianceReports,
+  type Notifications, type InsertNotifications,
   users, departments, employees, leaves, attendance, payroll, performance, shifts, jobOpenings, applications,
-  employeeAllowances, employeeDeductions, employeeLeaveBalances, salarySlips
+  employeeAllowances, employeeDeductions, employeeLeaveBalances,
+  salaryComponents, tdsConfiguration, payslips, employeeLoans, salaryAdvances, complianceReports, notifications
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -101,26 +109,50 @@ export interface IStorage {
   createActivity(activity: any): Promise<any>;
 
   // Employee Allowances
-  getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowance[]>;
-  createEmployeeAllowance(allowance: InsertEmployeeAllowance): Promise<EmployeeAllowance>;
-  updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowance>): Promise<EmployeeAllowance | undefined>;
+  getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowances[]>;
+  createEmployeeAllowance(allowance: InsertEmployeeAllowances): Promise<EmployeeAllowances>;
+  updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowances>): Promise<EmployeeAllowances | undefined>;
   deleteEmployeeAllowance(id: string): Promise<boolean>;
 
   // Employee Deductions
-  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]>;
-  createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction>;
-  updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeduction>): Promise<EmployeeDeduction | undefined>;
+  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeductions[]>;
+  createEmployeeDeduction(deduction: InsertEmployeeDeductions): Promise<EmployeeDeductions>;
+  updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeductions>): Promise<EmployeeDeductions | undefined>;
   deleteEmployeeDeduction(id: string): Promise<boolean>;
 
   // Employee Leave Balances
-  getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalance[]>;
-  createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalance): Promise<EmployeeLeaveBalance>;
-  updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalance>): Promise<EmployeeLeaveBalance | undefined>;
+  getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalances[]>;
+  createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalances): Promise<EmployeeLeaveBalances>;
+  updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalances>): Promise<EmployeeLeaveBalances | undefined>;
   deleteEmployeeLeaveBalance(id: string): Promise<boolean>;
 
-  // Salary Slips
-  getSalarySlips(filters?: any): Promise<any[]>;
-  createSalarySlip(data: any): Promise<any>;
+  // Advanced Payroll Features
+  getSalaryComponents(employeeId: string, financialYear?: string): Promise<SalaryComponents[]>;
+  createSalaryComponent(component: InsertSalaryComponents): Promise<SalaryComponents>;
+  updateSalaryComponent(id: string, component: Partial<InsertSalaryComponents>): Promise<SalaryComponents | undefined>;
+
+  getTdsConfiguration(financialYear: string): Promise<TdsConfiguration | undefined>;
+  createTdsConfiguration(config: InsertTdsConfiguration): Promise<TdsConfiguration>;
+  updateTdsConfiguration(id: string, config: Partial<InsertTdsConfiguration>): Promise<TdsConfiguration | undefined>;
+
+  getPayslips(filters?: { employeeId?: string; payPeriod?: string }): Promise<Payslips[]>;
+  createPayslip(payslip: InsertPayslips): Promise<Payslips>;
+  updatePayslip(id: string, payslip: Partial<InsertPayslips>): Promise<Payslips | undefined>;
+
+  getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]>;
+  createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans>;
+  updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined>;
+
+  getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]>;
+  createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances>;
+  updateSalaryAdvance(id: string, advance: Partial<InsertSalaryAdvances>): Promise<SalaryAdvances | undefined>;
+
+  getComplianceReports(filters?: { reportType?: string; financialYear?: string }): Promise<ComplianceReports[]>;
+  createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports>;
+
+  getNotifications(employeeId?: string): Promise<Notifications[]>;
+  createNotification(notification: InsertNotifications): Promise<Notifications>;
+  updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -624,12 +656,171 @@ export class DatabaseStorage implements IStorage {
 
   async createSalarySlip(data: any): Promise<any> {
     try {
-      const [salarySlip] = await this.db.insert(salarySlips).values(data).returning();
+      const [salarySlip] = await this.db.insert(payslips).values(data).returning();
       return salarySlip;
     } catch (error) {
       console.error('DatabaseStorage: createSalarySlip error:', error);
       throw error;
     }
+  }
+
+  // Advanced Payroll Methods Implementation
+  async getSalaryComponents(employeeId: string, financialYear?: string): Promise<SalaryComponents[]> {
+    let query = this.db.select().from(salaryComponents)
+      .where(and(eq(salaryComponents.employeeId, employeeId), eq(salaryComponents.isActive, true)));
+    
+    if (financialYear) {
+      query = query.where(eq(salaryComponents.financialYear, financialYear));
+    }
+    
+    return await query;
+  }
+
+  async createSalaryComponent(component: InsertSalaryComponents): Promise<SalaryComponents> {
+    const [result] = await this.db.insert(salaryComponents).values(component).returning();
+    return result;
+  }
+
+  async updateSalaryComponent(id: string, component: Partial<InsertSalaryComponents>): Promise<SalaryComponents | undefined> {
+    const [result] = await this.db.update(salaryComponents)
+      .set({ ...component, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(salaryComponents.id, id))
+      .returning();
+    return result;
+  }
+
+  async getTdsConfiguration(financialYear: string): Promise<TdsConfiguration | undefined> {
+    const [result] = await this.db.select().from(tdsConfiguration)
+      .where(and(eq(tdsConfiguration.financialYear, financialYear), eq(tdsConfiguration.isActive, true)));
+    return result;
+  }
+
+  async createTdsConfiguration(config: InsertTdsConfiguration): Promise<TdsConfiguration> {
+    const [result] = await this.db.insert(tdsConfiguration).values(config).returning();
+    return result;
+  }
+
+  async updateTdsConfiguration(id: string, config: Partial<InsertTdsConfiguration>): Promise<TdsConfiguration | undefined> {
+    const [result] = await this.db.update(tdsConfiguration)
+      .set(config)
+      .where(eq(tdsConfiguration.id, id))
+      .returning();
+    return result;
+  }
+
+  async getPayslips(filters?: { employeeId?: string; payPeriod?: string }): Promise<Payslips[]> {
+    let query = this.db.select().from(payslips);
+    
+    if (filters?.employeeId) {
+      query = query.where(eq(payslips.employeeId, filters.employeeId));
+    }
+    
+    if (filters?.payPeriod) {
+      query = query.where(eq(payslips.payPeriod, filters.payPeriod));
+    }
+    
+    return await query.orderBy(desc(payslips.generatedAt));
+  }
+
+  async createPayslip(payslip: InsertPayslips): Promise<Payslips> {
+    const [result] = await this.db.insert(payslips).values(payslip).returning();
+    return result;
+  }
+
+  async updatePayslip(id: string, payslip: Partial<InsertPayslips>): Promise<Payslips | undefined> {
+    const [result] = await this.db.update(payslips)
+      .set(payslip)
+      .where(eq(payslips.id, id))
+      .returning();
+    return result;
+  }
+
+  async getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]> {
+    let query = this.db.select().from(employeeLoans);
+    
+    if (employeeId) {
+      query = query.where(eq(employeeLoans.employeeId, employeeId));
+    }
+    
+    return await query.orderBy(desc(employeeLoans.createdAt));
+  }
+
+  async createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans> {
+    const [result] = await this.db.insert(employeeLoans).values(loan).returning();
+    return result;
+  }
+
+  async updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined> {
+    const [result] = await this.db.update(employeeLoans)
+      .set({ ...loan, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(employeeLoans.id, id))
+      .returning();
+    return result;
+  }
+
+  async getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]> {
+    let query = this.db.select().from(salaryAdvances);
+    
+    if (employeeId) {
+      query = query.where(eq(salaryAdvances.employeeId, employeeId));
+    }
+    
+    return await query.orderBy(desc(salaryAdvances.createdAt));
+  }
+
+  async createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances> {
+    const [result] = await this.db.insert(salaryAdvances).values(advance).returning();
+    return result;
+  }
+
+  async updateSalaryAdvance(id: string, advance: Partial<InsertSalaryAdvances>): Promise<SalaryAdvances | undefined> {
+    const [result] = await this.db.update(salaryAdvances)
+      .set({ ...advance, updatedAt: sql`CURRENT_TIMESTAMP` })
+      .where(eq(salaryAdvances.id, id))
+      .returning();
+    return result;
+  }
+
+  async getComplianceReports(filters?: { reportType?: string; financialYear?: string }): Promise<ComplianceReports[]> {
+    let query = this.db.select().from(complianceReports);
+    
+    if (filters?.reportType) {
+      query = query.where(eq(complianceReports.reportType, filters.reportType));
+    }
+    
+    if (filters?.financialYear) {
+      query = query.where(eq(complianceReports.financialYear, filters.financialYear));
+    }
+    
+    return await query.orderBy(desc(complianceReports.generatedAt));
+  }
+
+  async createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports> {
+    const [result] = await this.db.insert(complianceReports).values(report).returning();
+    return result;
+  }
+
+  async getNotifications(employeeId?: string): Promise<Notifications[]> {
+    let query = this.db.select().from(notifications);
+    
+    if (employeeId) {
+      query = query.where(eq(notifications.employeeId, employeeId));
+    }
+    
+    return await query.orderBy(desc(notifications.createdAt));
+  }
+
+  async createNotification(notification: InsertNotifications): Promise<Notifications> {
+    const [result] = await this.db.insert(notifications).values(notification).returning();
+    return result;
+  }
+
+  async updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined> {
+    const [result] = await this.db.update(notifications)
+      .set(notification)
+      .where(eq(notifications.id, id))
+      .returning();
+    return result;
   }
 }
 

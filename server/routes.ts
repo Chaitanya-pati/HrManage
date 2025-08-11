@@ -13,7 +13,14 @@ import {
   insertApplicationSchema,
   insertEmployeeAllowanceSchema,
   insertEmployeeDeductionSchema,
-  insertEmployeeLeaveBalanceSchema
+  insertEmployeeLeaveBalanceSchema,
+  insertSalaryComponentsSchema,
+  insertTdsConfigurationSchema,
+  insertPayslipsSchema,
+  insertEmployeeLoansSchema,
+  insertSalaryAdvancesSchema,
+  insertComplianceReportsSchema,
+  insertNotificationsSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -697,6 +704,244 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating salary slip:", error);
       res.status(500).json({ message: "Failed to create salary slip" });
+    }
+  });
+
+  // Advanced Payroll Routes
+
+  // Salary Components
+  app.get("/api/salary-components/:employeeId", async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const { financialYear } = req.query;
+      const components = await storage.getSalaryComponents(employeeId, financialYear as string);
+      res.json(components);
+    } catch (error) {
+      console.error("Error fetching salary components:", error);
+      res.status(500).json({ message: "Failed to fetch salary components" });
+    }
+  });
+
+  app.post("/api/salary-components", async (req, res) => {
+    try {
+      const result = insertSalaryComponentsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid salary component data", errors: result.error.errors });
+      }
+      const component = await storage.createSalaryComponent(result.data);
+      res.status(201).json(component);
+    } catch (error) {
+      console.error("Error creating salary component:", error);
+      res.status(500).json({ message: "Failed to create salary component" });
+    }
+  });
+
+  app.put("/api/salary-components/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertSalaryComponentsSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid salary component data", errors: result.error.errors });
+      }
+      const component = await storage.updateSalaryComponent(id, result.data);
+      res.json(component);
+    } catch (error) {
+      console.error("Error updating salary component:", error);
+      res.status(500).json({ message: "Failed to update salary component" });
+    }
+  });
+
+  // TDS Configuration
+  app.get("/api/tds-configuration/:financialYear", async (req, res) => {
+    try {
+      const { financialYear } = req.params;
+      const config = await storage.getTdsConfiguration(financialYear);
+      res.json(config);
+    } catch (error) {
+      console.error("Error fetching TDS configuration:", error);
+      res.status(500).json({ message: "Failed to fetch TDS configuration" });
+    }
+  });
+
+  app.post("/api/tds-configuration", async (req, res) => {
+    try {
+      const result = insertTdsConfigurationSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid TDS configuration data", errors: result.error.errors });
+      }
+      const config = await storage.createTdsConfiguration(result.data);
+      res.status(201).json(config);
+    } catch (error) {
+      console.error("Error creating TDS configuration:", error);
+      res.status(500).json({ message: "Failed to create TDS configuration" });
+    }
+  });
+
+  // Payslips
+  app.get("/api/payslips", async (req, res) => {
+    try {
+      const { employeeId, payPeriod } = req.query;
+      const filters: any = {};
+      if (employeeId) filters.employeeId = employeeId as string;
+      if (payPeriod) filters.payPeriod = payPeriod as string;
+      
+      const payslips = await storage.getPayslips(filters);
+      res.json(payslips);
+    } catch (error) {
+      console.error("Error fetching payslips:", error);
+      res.status(500).json({ message: "Failed to fetch payslips" });
+    }
+  });
+
+  app.post("/api/payslips", async (req, res) => {
+    try {
+      const result = insertPayslipsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid payslip data", errors: result.error.errors });
+      }
+      const payslip = await storage.createPayslip(result.data);
+      res.status(201).json(payslip);
+    } catch (error) {
+      console.error("Error creating payslip:", error);
+      res.status(500).json({ message: "Failed to create payslip" });
+    }
+  });
+
+  // Employee Loans
+  app.get("/api/employee-loans", async (req, res) => {
+    try {
+      const { employeeId } = req.query;
+      const loans = await storage.getEmployeeLoans(employeeId as string);
+      res.json(loans);
+    } catch (error) {
+      console.error("Error fetching employee loans:", error);
+      res.status(500).json({ message: "Failed to fetch employee loans" });
+    }
+  });
+
+  app.post("/api/employee-loans", async (req, res) => {
+    try {
+      const result = insertEmployeeLoansSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid loan data", errors: result.error.errors });
+      }
+      const loan = await storage.createEmployeeLoan(result.data);
+      res.status(201).json(loan);
+    } catch (error) {
+      console.error("Error creating employee loan:", error);
+      res.status(500).json({ message: "Failed to create employee loan" });
+    }
+  });
+
+  app.put("/api/employee-loans/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertEmployeeLoansSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid loan data", errors: result.error.errors });
+      }
+      const loan = await storage.updateEmployeeLoan(id, result.data);
+      res.json(loan);
+    } catch (error) {
+      console.error("Error updating employee loan:", error);
+      res.status(500).json({ message: "Failed to update employee loan" });
+    }
+  });
+
+  // Salary Advances
+  app.get("/api/salary-advances", async (req, res) => {
+    try {
+      const { employeeId } = req.query;
+      const advances = await storage.getSalaryAdvances(employeeId as string);
+      res.json(advances);
+    } catch (error) {
+      console.error("Error fetching salary advances:", error);
+      res.status(500).json({ message: "Failed to fetch salary advances" });
+    }
+  });
+
+  app.post("/api/salary-advances", async (req, res) => {
+    try {
+      const result = insertSalaryAdvancesSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid advance data", errors: result.error.errors });
+      }
+      const advance = await storage.createSalaryAdvance(result.data);
+      res.status(201).json(advance);
+    } catch (error) {
+      console.error("Error creating salary advance:", error);
+      res.status(500).json({ message: "Failed to create salary advance" });
+    }
+  });
+
+  // Compliance Reports
+  app.get("/api/compliance-reports", async (req, res) => {
+    try {
+      const { reportType, financialYear } = req.query;
+      const filters: any = {};
+      if (reportType) filters.reportType = reportType as string;
+      if (financialYear) filters.financialYear = financialYear as string;
+      
+      const reports = await storage.getComplianceReports(filters);
+      res.json(reports);
+    } catch (error) {
+      console.error("Error fetching compliance reports:", error);
+      res.status(500).json({ message: "Failed to fetch compliance reports" });
+    }
+  });
+
+  app.post("/api/compliance-reports", async (req, res) => {
+    try {
+      const result = insertComplianceReportsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid compliance report data", errors: result.error.errors });
+      }
+      const report = await storage.createComplianceReport(result.data);
+      res.status(201).json(report);
+    } catch (error) {
+      console.error("Error creating compliance report:", error);
+      res.status(500).json({ message: "Failed to create compliance report" });
+    }
+  });
+
+  // Notifications
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const { employeeId } = req.query;
+      const notifications = await storage.getNotifications(employeeId as string);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    try {
+      const result = insertNotificationsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid notification data", errors: result.error.errors });
+      }
+      const notification = await storage.createNotification(result.data);
+      res.status(201).json(notification);
+    } catch (error) {
+      console.error("Error creating notification:", error);
+      res.status(500).json({ message: "Failed to create notification" });
+    }
+  });
+
+  app.put("/api/notifications/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertNotificationsSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid notification data", errors: result.error.errors });
+      }
+      const notification = await storage.updateNotification(id, result.data);
+      res.json(notification);
+    } catch (error) {
+      console.error("Error updating notification:", error);
+      res.status(500).json({ message: "Failed to update notification" });
     }
   });
 

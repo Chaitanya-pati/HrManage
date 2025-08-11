@@ -8,15 +8,23 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { DollarSign, FileText, TrendingUp, Users } from "lucide-react";
-import type { Payroll, EmployeeWithDepartment } from "@shared/schema";
+import { DollarSign, FileText, TrendingUp, Users, Calculator, CreditCard, BarChart3, Settings } from "lucide-react";
+import type { Payroll, Employee } from "@shared/schema";
+import { SalaryEditor } from "@/components/payroll/salary-editor";
+import { TdsCalculator } from "@/components/payroll/tds-calculator";
+import { LoanAdvanceTracker } from "@/components/payroll/loan-advance-tracker";
+import { ComplianceReports } from "@/components/payroll/compliance-reports";
+import { PayslipGenerator } from "@/components/payroll/payslip-generator";
 
 export default function PayrollPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -30,7 +38,7 @@ export default function PayrollPage() {
 
   const processPayrollMutation = useMutation({
     mutationFn: async () => {
-      const activeEmployees = employees?.filter(emp => emp.status === "active") || [];
+      const activeEmployees = employees?.filter((emp: Employee) => emp.status === "active") || [];
       
       for (const employee of activeEmployees) {
         const baseSalary = parseFloat(employee.salary || "0");
@@ -126,7 +134,7 @@ export default function PayrollPage() {
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          title="Payroll Processing" 
+          title="Advanced Payroll Management" 
           onMenuClick={() => setSidebarOpen(true)} 
         />
         
@@ -135,12 +143,12 @@ export default function PayrollPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-neutral">Payroll Management</h1>
-                <p className="text-gray-600">Process and manage employee payroll</p>
+                <h1 className="text-2xl font-bold text-neutral">Advanced Payroll Management</h1>
+                <p className="text-gray-600">Comprehensive payroll processing with salary editor, TDS calculation, and compliance reporting</p>
               </div>
               <div className="flex items-center space-x-4">
                 <Select value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                  <SelectTrigger className="w-32" data-testid="month-selector">
+                  <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -153,7 +161,7 @@ export default function PayrollPage() {
                 </Select>
                 
                 <Select value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                  <SelectTrigger className="w-24" data-testid="year-selector">
+                  <SelectTrigger className="w-24">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -164,179 +172,226 @@ export default function PayrollPage() {
                     ))}
                   </SelectContent>
                 </Select>
-
-                <Button 
-                  onClick={() => processPayrollMutation.mutate()}
-                  disabled={processPayrollMutation.isPending}
-                  data-testid="process-payroll-button"
-                >
-                  <DollarSign size={16} className="mr-2" />
-                  {processPayrollMutation.isPending ? "Processing..." : "Process Payroll"}
-                </Button>
               </div>
             </div>
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card className="card-hover transition-all duration-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <DollarSign className="h-8 w-8 text-primary" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Total Payroll</p>
-                      <p className="text-2xl font-bold text-gray-900" data-testid="total-payroll">
-                        ${totalPayroll.toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Advanced Payroll Features Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="salary-editor" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Salary Editor
+                </TabsTrigger>
+                <TabsTrigger value="tds-calculator" className="flex items-center gap-2">
+                  <Calculator className="h-4 w-4" />
+                  TDS Calculator
+                </TabsTrigger>
+                <TabsTrigger value="loans-advances" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  Loans & Advances
+                </TabsTrigger>
+                <TabsTrigger value="compliance" className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Compliance
+                </TabsTrigger>
+                <TabsTrigger value="payslips" className="flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Payslips
+                </TabsTrigger>
+              </TabsList>
 
-              <Card className="card-hover transition-all duration-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <Users className="h-8 w-8 text-green-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Processed</p>
-                      <p className="text-2xl font-bold text-gray-900" data-testid="processed-count">
-                        {processedCount}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <TabsContent value="overview" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Payroll Overview</h2>
+                  <Button 
+                    onClick={() => processPayrollMutation.mutate()}
+                    disabled={processPayrollMutation.isPending}
+                  >
+                    <DollarSign size={16} className="mr-2" />
+                    {processPayrollMutation.isPending ? "Processing..." : "Process Payroll"}
+                  </Button>
+                </div>
 
-              <Card className="card-hover transition-all duration-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <FileText className="h-8 w-8 text-yellow-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Pending</p>
-                      <p className="text-2xl font-bold text-gray-900" data-testid="pending-count">
-                        {pendingCount}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="card-hover transition-all duration-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center">
-                    <TrendingUp className="h-8 w-8 text-blue-600" />
-                    <div className="ml-4">
-                      <p className="text-sm font-medium text-gray-600">Avg Salary</p>
-                      <p className="text-2xl font-bold text-gray-900" data-testid="average-salary">
-                        ${payrollData && payrollData.length > 0 ? Math.round(totalPayroll / payrollData.length).toLocaleString() : '0'}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Payroll Table */}
-            <Card className="card-hover transition-all duration-200">
-              <CardHeader>
-                <CardTitle>
-                  Payroll Details - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {payrollLoading ? (
-                  <div className="space-y-4">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="flex items-center space-x-4 py-3">
-                        <Skeleton className="h-10 w-10 rounded-full" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-4 w-48" />
-                          <Skeleton className="h-3 w-32" />
+                {/* Summary Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <DollarSign className="h-8 w-8 text-primary" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Total Payroll</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            ₹{totalPayroll.toLocaleString()}
+                          </p>
                         </div>
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-4 w-24" />
-                        <Skeleton className="h-6 w-20" />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full" data-testid="payroll-table">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Employee</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Base Salary</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Allowances</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Deductions</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Net Salary</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-600">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {payrollData && payrollData.length > 0 ? (
-                          payrollData.map((payroll) => (
-                            <tr key={payroll.id} className="border-b hover:bg-gray-50" data-testid={`payroll-row-${payroll.id}`}>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center space-x-3">
-                                  <img
-                                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${getEmployeeName(payroll.employeeId)}&size=32`}
-                                    alt="Avatar"
-                                    className="w-8 h-8 rounded-full"
-                                  />
-                                  <div>
-                                    <p className="font-medium" data-testid={`employee-name-${payroll.id}`}>
-                                      {getEmployeeName(payroll.employeeId)}
-                                    </p>
-                                    <p className="text-sm text-gray-500">
-                                      {getEmployeePosition(payroll.employeeId)}
-                                    </p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4" data-testid={`base-salary-${payroll.id}`}>
-                                ${parseFloat(payroll.baseSalary).toLocaleString()}
-                              </td>
-                              <td className="py-3 px-4 text-green-600" data-testid={`allowances-${payroll.id}`}>
-                                +${parseFloat(payroll.allowances || "0").toLocaleString()}
-                              </td>
-                              <td className="py-3 px-4 text-red-600" data-testid={`deductions-${payroll.id}`}>
-                                -${parseFloat(payroll.deductions || "0").toLocaleString()}
-                              </td>
-                              <td className="py-3 px-4 font-semibold" data-testid={`net-salary-${payroll.id}`}>
-                                ${parseFloat(payroll.netSalary).toLocaleString()}
-                              </td>
-                              <td className="py-3 px-4" data-testid={`status-${payroll.id}`}>
-                                {getStatusBadge(payroll.status)}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex space-x-2">
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm"
-                                    onClick={() => window.open(`/payslips?employeeId=${payroll.employeeId}&month=${selectedMonth}&year=${selectedYear}`, '_blank')}
-                                    data-testid={`view-payslip-${payroll.id}`}
-                                  >
-                                    <FileText size={16} />
-                                  </Button>
-                                </div>
-                              </td>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <Users className="h-8 w-8 text-green-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Processed</p>
+                          <p className="text-2xl font-bold text-gray-900">{processedCount}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <FileText className="h-8 w-8 text-yellow-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Pending</p>
+                          <p className="text-2xl font-bold text-gray-900">{pendingCount}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center">
+                        <TrendingUp className="h-8 w-8 text-blue-600" />
+                        <div className="ml-4">
+                          <p className="text-sm font-medium text-gray-600">Avg Salary</p>
+                          <p className="text-2xl font-bold text-gray-900">
+                            ₹{payrollData && payrollData.length > 0 ? Math.round(totalPayroll / payrollData.length).toLocaleString() : '0'}
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Employee Selection for Advanced Features */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Select Employee for Advanced Features</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Select
+                      value={selectedEmployee?.id || ""}
+                      onValueChange={(value) => {
+                        const emp = employees?.find((e: Employee) => e.id === value);
+                        setSelectedEmployee(emp || null);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select an employee to manage salary, TDS, loans etc." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {employees?.map((emp: Employee) => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.firstName} {emp.lastName} ({emp.employeeId}) - {emp.department}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
+                {/* Simple Payroll Table */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>
+                      Payroll Summary - {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {payrollLoading ? (
+                      <div className="space-y-4">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="flex items-center space-x-4 py-3">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div className="flex-1 space-y-2">
+                              <Skeleton className="h-4 w-48" />
+                              <Skeleton className="h-3 w-32" />
+                            </div>
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-4 w-24" />
+                          </div>
+                        ))}
+                      </div>
+                    ) : payrollData && payrollData.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Employee</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Base Salary</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Net Salary</th>
+                              <th className="text-left py-3 px-4 font-medium text-gray-600">Status</th>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
-                            <td colSpan={7} className="py-8 text-center text-gray-500" data-testid="no-payroll-data">
-                              <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                              <p className="text-lg font-medium">No payroll data found</p>
-                              <p className="text-sm">Process payroll to generate salary records for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}</p>
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                          </thead>
+                          <tbody>
+                            {payrollData.map((payroll: Payroll) => (
+                              <tr key={payroll.id} className="border-b hover:bg-gray-50">
+                                <td className="py-3 px-4">
+                                  <div className="font-medium">
+                                    {getEmployeeName(payroll.employeeId)}
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4">₹{parseFloat(payroll.baseSalary).toLocaleString()}</td>
+                                <td className="py-3 px-4 font-semibold">₹{parseFloat(payroll.netSalary).toLocaleString()}</td>
+                                <td className="py-3 px-4">{getStatusBadge(payroll.status)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">
+                        No payroll data found for {months.find(m => m.value === selectedMonth)?.label} {selectedYear}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="salary-editor">
+                {selectedEmployee ? (
+                  <SalaryEditor employee={selectedEmployee} />
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-gray-500">Please select an employee from the Overview tab to manage their salary components.</p>
+                    </CardContent>
+                  </Card>
                 )}
-              </CardContent>
-            </Card>
+              </TabsContent>
+
+              <TabsContent value="tds-calculator">
+                {selectedEmployee ? (
+                  <TdsCalculator employee={selectedEmployee} />
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-gray-500">Please select an employee from the Overview tab to calculate their TDS.</p>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="loans-advances">
+                <LoanAdvanceTracker employee={selectedEmployee || undefined} />
+              </TabsContent>
+
+              <TabsContent value="compliance">
+                <ComplianceReports />
+              </TabsContent>
+
+              <TabsContent value="payslips">
+                <PayslipGenerator employee={selectedEmployee || undefined} />
+              </TabsContent>
+            </Tabs>
           </div>
         </main>
       </div>
