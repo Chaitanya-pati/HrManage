@@ -381,8 +381,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/payroll", async (req, res) => {
     try {
+      console.log("Received payroll data:", JSON.stringify(req.body, null, 2));
       const result = insertPayrollSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("Payroll validation errors:", result.error.errors);
         return res.status(400).json({ message: "Invalid payroll data", errors: result.error.errors });
       }
 
