@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import TimeClock from "@/components/attendance/time-clock";
@@ -35,6 +36,7 @@ export default function Attendance() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [view, setView] = useState<"overview" | "timeclock" | "reports" | "entry">("overview");
+  const [, setLocation] = useLocation();
 
   // Attendance entry form states
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
@@ -348,7 +350,7 @@ export default function Attendance() {
                   </SelectContent>
                 </Select>
                 {/* Request Leave Button */}
-                <Button onClick={() => { /* TODO: Implement leave request modal */ }}>
+                <Button onClick={() => setLocation('/leaves')}>
                   <Plus className="h-4 w-4 mr-2" />
                   Request Leave
                 </Button>
