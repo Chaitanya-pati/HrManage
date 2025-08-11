@@ -27,14 +27,15 @@ import {
   TrendingUp,
   UserCheck,
   UserX,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from "lucide-react";
 
 export default function Attendance() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [view, setView] = useState<"overview" | "timeclock" | "reports" | "entry">("overview");
-  
+
   // Attendance entry form states
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
@@ -83,7 +84,7 @@ export default function Attendance() {
   const biometricVerifications = attendance.filter(att => 
     att.fingerprintVerified || att.faceRecognitionVerified
   ).length;
-  
+
   const deviceSyncStatus = biometricDevices.filter(device => device.isActive).length;
 
   const todayAttendance = attendance.find(att => 
@@ -165,15 +166,15 @@ export default function Attendance() {
 
   const calculateHoursWorked = () => {
     if (!checkInTime || !checkOutTime) return "0";
-    
+
     const checkIn = new Date(`${attendanceDate}T${checkInTime}:00`);
     const checkOut = new Date(`${attendanceDate}T${checkOutTime}:00`);
-    
+
     if (checkOut <= checkIn) return "0";
-    
+
     const diffMs = checkOut.getTime() - checkIn.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
-    
+
     return diffHours.toFixed(2);
   };
 
@@ -188,7 +189,7 @@ export default function Attendance() {
     setSelectedShiftId(record.shiftId || "");
     setWorkLocation(record.workLocation || "office");
     setClientSite(record.clientSite || "");
-    
+
     // Format times for input fields
     if (record.checkIn) {
       setCheckInTime(new Date(record.checkIn).toTimeString().slice(0, 5));
@@ -202,7 +203,7 @@ export default function Attendance() {
     if (record.gateExit) {
       setGateExitTime(new Date(record.gateExit).toTimeString().slice(0, 5));
     }
-    
+
     setAttendanceStatus(record.status);
     setFingerprintVerified(record.fingerprintVerified || false);
     setFaceRecognitionVerified(record.faceRecognitionVerified || false);
@@ -210,7 +211,7 @@ export default function Attendance() {
     setTravelDistance(record.travelDistance || "");
     setTravelMode(record.travelMode || "");
     setAttendanceNotes(record.notes || "");
-    
+
     // Switch to entry view for editing
     setView("entry");
   };
@@ -319,13 +320,13 @@ export default function Attendance() {
   return (
     <div className="flex h-screen bg-hrms-background">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      
+
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
           title="Time & Attendance" 
           onMenuClick={() => setSidebarOpen(true)} 
         />
-        
+
         <main className="flex-1 overflow-y-auto p-6">
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -346,6 +347,11 @@ export default function Attendance() {
                     <SelectItem value="reports">Reports</SelectItem>
                   </SelectContent>
                 </Select>
+                {/* Request Leave Button */}
+                <Button onClick={() => { /* TODO: Implement leave request modal */ }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Request Leave
+                </Button>
               </div>
             </div>
 
@@ -522,14 +528,14 @@ export default function Attendance() {
                           Mark All Absent
                         </Button>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
                         {employees.map((emp) => {
                           const todayRecord = attendance.find(att => 
                             att.employeeId === emp.id && 
                             att.date === attendanceDate
                           );
-                          
+
                           return (
                             <div key={emp.id} className="flex items-center justify-between p-3 border rounded-lg">
                               <div className="flex items-center space-x-3">
@@ -654,77 +660,6 @@ export default function Attendance() {
                           <SelectContent>
                             <SelectItem value="office">Office</SelectItem>
                             <SelectItem value="remote">Remote</SelectItem>
-
-
-            {/* Metrix Software Integration Section */}
-            {view === "overview" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <Timer className="h-5 w-5" />
-                    <span>Metrix Software Integration</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-lg">Integration Status</h4>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-sm font-medium">Connected to Metrix System</span>
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        <p>• Real-time biometric data sync</p>
-                        <p>• Automatic attendance recording</p>
-                        <p>• Fingerprint & face recognition</p>
-                        <p>• Multi-device support</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <h4 className="font-medium text-lg">API Endpoints</h4>
-                      <div className="bg-gray-50 p-3 rounded-lg space-y-2">
-                        <div className="text-xs font-mono">
-                          <span className="text-green-600">POST</span> /api/metrix/attendance
-                        </div>
-                        <div className="text-xs font-mono">
-                          <span className="text-blue-600">POST</span> /api/biometric/sync
-                        </div>
-                        <div className="text-xs font-mono">
-                          <span className="text-purple-600">GET</span> /api/biometric-devices
-                        </div>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        Use these endpoints to integrate your Metrix biometric software
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h5 className="font-medium text-blue-900 mb-2">Sample Integration Code</h5>
-                    <pre className="text-xs bg-white p-3 rounded border overflow-x-auto">
-{`// Metrix software integration
-const attendanceData = {
-  employeeId: "EMP001",
-  biometricId: "BIO123456",
-  deviceId: "METRIX_001",
-  timestamp: new Date().toISOString(),
-  punchType: "IN", // or "OUT"
-  verificationMethod: "fingerprint", // or "face"
-  location: "office"
-};
-
-fetch('/api/metrix/attendance', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(attendanceData)
-});`}
-                    </pre>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
                             <SelectItem value="field">Field Work</SelectItem>
                             <SelectItem value="client_site">Client Site</SelectItem>
                           </SelectContent>
@@ -975,7 +910,7 @@ fetch('/api/metrix/attendance', {
                           attendance.map((record) => {
                             const employee = employees?.find(emp => emp.id === record.employeeId);
                             const isLate = record.checkIn && new Date(record.checkIn) > new Date(`${selectedDate}T09:00:00`);
-                            
+
                             return (
                               <TableRow key={record.id}>
                                 <TableCell>
@@ -1142,7 +1077,7 @@ fetch('/api/metrix/attendance', {
                                     >
                                       {record.status}
                                     </Badge>
-                                    
+
                                     <div className="flex flex-wrap gap-1">
                                       {record.isFieldWork && (
                                         <Badge 
@@ -1152,7 +1087,7 @@ fetch('/api/metrix/attendance', {
                                           Field {record.fieldWorkApproved ? '✓' : '⏳'}
                                         </Badge>
                                       )}
-                                      
+
                                       {parseFloat(record.overtimeHours || 0) > 0 && (
                                         <Badge 
                                           variant={record.overtimeApproved ? "default" : "outline"} 
@@ -1161,13 +1096,13 @@ fetch('/api/metrix/attendance', {
                                           OT {record.overtimeApproved ? '✓' : '⏳'}
                                         </Badge>
                                       )}
-                                      
+
                                       {record.geoFenceStatus === 'outside' && (
                                         <Badge variant="destructive" className="text-xs">
                                           Outside Zone
                                         </Badge>
                                       )}
-                                      
+
                                       {record.fingerprintVerified && record.faceRecognitionVerified && (
                                         <Badge variant="secondary" className="text-xs">
                                           Bio Verified
