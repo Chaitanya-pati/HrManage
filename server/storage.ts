@@ -54,6 +54,7 @@ export interface IStorage {
   getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
   updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined>;
+  deleteLeave(id: string): Promise<boolean>;
 
   // Payroll
   getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]>;
@@ -90,6 +91,10 @@ export interface IStorage {
     departmentDistribution: { name: string; count: number }[];
     attendanceTrend: { date: string; rate: number }[];
   }>;
+
+  // Activities
+  getActivities(limit?: number): Promise<any[]>;
+  createActivity(activity: any): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -305,6 +310,11 @@ export class DatabaseStorage implements IStorage {
     return undefined;
   }
 
+  async deleteLeave(id: string): Promise<boolean> {
+    const result = await db.delete(leaves).where(eq(leaves.id, id));
+    return result.changes > 0;
+  }
+
   // Payroll
   async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> {
     const conditions = [];
@@ -449,6 +459,17 @@ export class DatabaseStorage implements IStorage {
       departmentDistribution: [], // Would need aggregation
       attendanceTrend: [] // Would need historical data
     };
+  }
+
+  // Activities
+  async getActivities(limit: number = 50): Promise<any[]> {
+    // Return empty array for now - activities table would need to be implemented
+    return [];
+  }
+
+  async createActivity(activity: any): Promise<any> {
+    // Return the activity as-is for now - activities table would need to be implemented
+    return activity;
   }
 }
 

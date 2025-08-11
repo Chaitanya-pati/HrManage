@@ -275,7 +275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/leaves/:id", async (req, res) => {
+  app.patch("/api/leaves/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertLeaveSchema.partial().safeParse(req.body);
@@ -292,6 +292,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating leave:", error);
       res.status(500).json({ message: "Failed to update leave" });
+    }
+  });
+
+  app.delete("/api/leaves/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteLeave(id);
+      if (!success) {
+        return res.status(404).json({ message: "Leave request not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting leave:", error);
+      res.status(500).json({ message: "Failed to delete leave" });
     }
   });
 
