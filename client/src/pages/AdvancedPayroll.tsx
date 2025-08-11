@@ -150,6 +150,15 @@ export default function AdvancedPayroll() {
         </TabsList>
 
         <TabsContent value="payroll" className="space-y-4">
+          <div className="flex justify-end mb-4">
+            <Button 
+              onClick={() => window.open('/payslip-generator', '_blank')}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Open Payslip Generator
+            </Button>
+          </div>
           {/* Filters */}
           <Card>
             <CardHeader>

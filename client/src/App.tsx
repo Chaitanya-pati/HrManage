@@ -9,6 +9,7 @@ import EmployeeBenefits from "@/pages/employee-benefits";
 import Attendance from "@/pages/attendance";
 import Payroll from "@/pages/payroll";
 import AdvancedPayroll from "@/pages/AdvancedPayroll";
+import PayslipGeneratorFixed from "@/components/payroll/payslip-generator-fixed";
 import Payslips from "@/pages/payslips";
 import Performance from "@/pages/performance";
 import Organization from "@/pages/organization";
@@ -35,6 +36,7 @@ function Router() {
       <Route path="/shifts" component={Shifts} />
       <Route path="/payroll" component={Payroll} />
       <Route path="/advanced-payroll" component={AdvancedPayroll} />
+      <Route path="/payslip-generator" component={PayslipGeneratorFixed} />
       <Route path="/payslips" component={Payslips} />
       <Route path="/performance" component={Performance} />
       <Route path="/benefits"
