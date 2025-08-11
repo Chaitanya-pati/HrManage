@@ -400,6 +400,15 @@ export const insertEmployeeAllowanceSchema = createInsertSchema(employeeAllowanc
 export const insertEmployeeDeductionSchema = createInsertSchema(employeeDeductions).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertEmployeeLeaveBalanceSchema = createInsertSchema(employeeLeaveBalances).omit({ id: true, createdAt: true, updatedAt: true });
 
+// Advanced Payroll schemas
+export const insertSalaryComponentsSchema = createInsertSchema(salaryComponents).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertTdsConfigurationSchema = createInsertSchema(tdsConfiguration).omit({ id: true, createdAt: true });
+export const insertPayslipsSchema = createInsertSchema(payslips).omit({ id: true, generatedAt: true });
+export const insertEmployeeLoansSchema = createInsertSchema(employeeLoans).omit({ id: true, createdAt: true });
+export const insertSalaryAdvancesSchema = createInsertSchema(salaryAdvances).omit({ id: true, createdAt: true });
+export const insertComplianceReportsSchema = createInsertSchema(complianceReports).omit({ id: true, createdAt: true });
+export const insertNotificationsSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true });
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -427,3 +436,19 @@ export type EmployeeDeduction = typeof employeeDeductions.$inferSelect;
 export type InsertEmployeeDeduction = z.infer<typeof insertEmployeeDeductionSchema>;
 export type EmployeeLeaveBalance = typeof employeeLeaveBalances.$inferSelect;
 export type InsertEmployeeLeaveBalance = z.infer<typeof insertEmployeeLeaveBalanceSchema>;
+
+// Advanced Payroll types
+export type SalaryComponent = typeof salaryComponents.$inferSelect;
+export type InsertSalaryComponent = z.infer<typeof insertSalaryComponentsSchema>;
+export type TdsConfiguration = typeof tdsConfiguration.$inferSelect;
+export type InsertTdsConfiguration = z.infer<typeof insertTdsConfigurationSchema>;
+export type Payslip = typeof payslips.$inferSelect;
+export type InsertPayslip = z.infer<typeof insertPayslipsSchema>;
+export type EmployeeLoan = typeof employeeLoans.$inferSelect;
+export type InsertEmployeeLoan = z.infer<typeof insertEmployeeLoansSchema>;
+export type SalaryAdvance = typeof salaryAdvances.$inferSelect;
+export type InsertSalaryAdvance = z.infer<typeof insertSalaryAdvancesSchema>;
+export type ComplianceReport = typeof complianceReports.$inferSelect;
+export type InsertComplianceReport = z.infer<typeof insertComplianceReportsSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationsSchema>;
