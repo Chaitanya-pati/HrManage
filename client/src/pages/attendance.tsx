@@ -433,6 +433,33 @@ export default function Attendance() {
                 </CardContent>
               </Card>
 
+              {/* New Leave Request Card */}
+              <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Calendar className="h-8 w-8 text-white" />
+                      <div className="ml-4">
+                        <p className="text-sm font-medium text-blue-100">Need Time Off?</p>
+                        <p className="text-lg font-bold text-white">Request Leave</p>
+                        <p className="text-xs text-blue-100 mt-1">Submit your leave application</p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        console.log('Leave request button clicked');
+                        // Force page reload with new URL
+                        window.location.assign('/leaves');
+                      }}
+                      className="bg-white text-blue-600 hover:bg-blue-50 font-semibold px-4 py-2"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Apply Now
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center">
