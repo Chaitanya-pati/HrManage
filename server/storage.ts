@@ -4,24 +4,18 @@ import {
   type Employee, type InsertEmployee,
   type Attendance, type InsertAttendance,
   type Leave, type InsertLeave,
-  type Payroll, type InsertPayroll,
+  type Payslip, type InsertPayslip,
   type Performance, type InsertPerformance,
   type Shift, type InsertShift,
   type JobOpening, type InsertJobOpening,
   type Application, type InsertApplication,
-  type EmployeeAllowances, type InsertEmployeeAllowances,
-  type EmployeeDeductions, type InsertEmployeeDeductions,
-  type EmployeeLeaveBalances, type InsertEmployeeLeaveBalances,
-  type SalaryComponents, type InsertSalaryComponents,
-  type TdsConfiguration, type InsertTdsConfiguration,
-  type Payslips, type InsertPayslips,
-  type EmployeeLoans, type InsertEmployeeLoans,
-  type SalaryAdvances, type InsertSalaryAdvances,
-  type ComplianceReports, type InsertComplianceReports,
-  type Notifications, type InsertNotifications,
-  users, departments, employees, leaves, attendance, payroll, performance, shifts, jobOpenings, applications,
+  type EmployeeAllowance, type InsertEmployeeAllowance,
+  type EmployeeDeduction, type InsertEmployeeDeduction,
+  type EmployeeLeaveBalance, type InsertEmployeeLeaveBalance,
+  type SalaryComponent, type InsertSalaryComponent,
+  users, departments, employees, leaves, attendance, performance, shifts, jobOpenings, applications, payslips,
   employeeAllowances, employeeDeductions, employeeLeaveBalances,
-  salaryComponents, tdsConfiguration, payslips, employeeLoans, salaryAdvances, complianceReports, notifications
+  salaryComponents
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -68,10 +62,10 @@ export interface IStorage {
   updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined>;
   deleteLeave(id: string): Promise<boolean>;
 
-  // Payroll
-  getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]>;
-  createPayroll(payroll: InsertPayroll): Promise<Payroll>;
-  updatePayroll(id: string, payroll: Partial<InsertPayroll>): Promise<Payroll | undefined>;
+  // Payslips
+  getPayslips(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payslip[]>;
+  createPayslip(payslip: InsertPayslip): Promise<Payslip>;
+  updatePayslip(id: string, payslip: Partial<InsertPayslip>): Promise<Payslip | undefined>;
 
   // Performance
   getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]>;
