@@ -195,6 +195,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/shifts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const shift = await storage.getShift(id);
+      if (!shift) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+      res.json(shift);
+    } catch (error) {
+      console.error("Error fetching shift:", error);
+      res.status(500).json({ message: "Failed to fetch shift" });
+    }
+  });
+
   app.post("/api/shifts", async (req, res) => {
     try {
       const result = insertShiftSchema.safeParse(req.body);
@@ -207,6 +221,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating shift:", error);
       res.status(500).json({ message: "Failed to create shift" });
+    }
+  });
+
+  app.put("/api/shifts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = insertShiftSchema.partial().safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid shift data", errors: result.error.errors });
+      }
+
+      const shift = await storage.updateShift(id, result.data);
+      if (!shift) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+
+      res.json(shift);
+    } catch (error) {
+      console.error("Error updating shift:", error);
+      res.status(500).json({ message: "Failed to update shift" });
+    }
+  });
+
+  app.delete("/api/shifts/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = await storage.deleteShift(id);
+      if (!success) {
+        return res.status(404).json({ message: "Shift not found" });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting shift:", error);
+      res.status(500).json({ message: "Failed to delete shift" });
     }
   });
 

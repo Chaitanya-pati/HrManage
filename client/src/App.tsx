@@ -11,6 +11,7 @@ import Performance from "@/pages/performance";
 import Organization from "@/pages/organization";
 import Recruitment from "@/pages/recruitment";
 import Leaves from "@/pages/leaves";
+import Shifts from "./pages/shifts";
 import Analytics from "@/pages/analytics";
 import Settings from "@/pages/settings";
 import PlaceholderPage from "@/pages/placeholder";
@@ -27,72 +28,64 @@ function Router() {
       <Route path="/recruitment" component={Recruitment} />
       <Route path="/attendance" component={Attendance} />
       <Route path="/leaves" component={Leaves} />
-      <Route path="/shifts" 
-        component={() => 
-          <PlaceholderPage 
-            title="Shift Management" 
-            subtitle="Manage employee shifts and schedules"
-            icon={<Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
-          />
-        } 
-      />
+      <Route path="/shifts" component={Shifts} />
       <Route path="/payroll" component={Payroll} />
-      <Route path="/benefits" 
-        component={() => 
-          <PlaceholderPage 
-            title="Benefits Administration" 
+      <Route path="/benefits"
+        component={() =>
+          <PlaceholderPage
+            title="Benefits Administration"
             subtitle="Manage employee benefits and insurance"
             icon={<Shield className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
-      <Route path="/expenses" 
-        component={() => 
-          <PlaceholderPage 
-            title="Expense Management" 
+      <Route path="/expenses"
+        component={() =>
+          <PlaceholderPage
+            title="Expense Management"
             subtitle="Track and manage employee expenses"
             icon={<Receipt className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
       <Route path="/performance" component={Performance} />
-      <Route path="/learning" 
-        component={() => 
-          <PlaceholderPage 
-            title="Learning & Development" 
+      <Route path="/learning"
+        component={() =>
+          <PlaceholderPage
+            title="Learning & Development"
             subtitle="Manage training programs and development"
             icon={<GraduationCap className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
-      <Route path="/talent" 
-        component={() => 
-          <PlaceholderPage 
-            title="Talent Management" 
+      <Route path="/talent"
+        component={() =>
+          <PlaceholderPage
+            title="Talent Management"
             subtitle="Identify and develop talent within the organization"
             icon={<Star className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
       <Route path="/analytics" component={Analytics} />
-      <Route path="/reports" 
-        component={() => 
-          <PlaceholderPage 
-            title="Reports" 
+      <Route path="/reports"
+        component={() =>
+          <PlaceholderPage
+            title="Reports"
             subtitle="Generate comprehensive HR reports"
             icon={<FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
       <Route path="/settings" component={Settings} />
-      <Route path="/users" 
-        component={() => 
-          <PlaceholderPage 
-            title="User Management" 
+      <Route path="/users"
+        component={() =>
+          <PlaceholderPage
+            title="User Management"
             subtitle="Manage system users and permissions"
             icon={<Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />}
           />
-        } 
+        }
       />
       <Route component={NotFound} />
     </Switch>

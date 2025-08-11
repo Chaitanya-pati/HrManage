@@ -1,5 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
+import {
+  Calendar,
+  Clock,
+  FileText,
+  Home,
+  Settings,
+  Users,
+  TrendingUp,
+  Building2,
+  UserCheck,
+} from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -74,7 +85,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           data-testid="sidebar-overlay"
         />
       )}
-      
+
       <aside 
         className={cn(
           "w-72 bg-surface border-r border-gray-200 flex-shrink-0 sidebar-transition z-50",
@@ -94,7 +105,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           </div>
         </div>
-        
+
         <nav className="p-4 space-y-2 overflow-y-auto h-full pb-20" data-testid="sidebar-nav">
           {menuItems.map((section) => (
             <div key={section.section} className="space-y-1">
