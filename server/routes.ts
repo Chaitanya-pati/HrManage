@@ -279,8 +279,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/attendance", async (req, res) => {
     try {
+      console.log("Received attendance data:", JSON.stringify(req.body, null, 2));
       const result = insertAttendanceSchema.safeParse(req.body);
       if (!result.success) {
+        console.log("Validation errors:", result.error.errors);
         return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
       }
 

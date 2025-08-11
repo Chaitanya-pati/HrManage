@@ -365,6 +365,10 @@ export const insertAttendanceSchema = createInsertSchema(attendance, {
   breakStart: z.coerce.date().optional(),
   breakEnd: z.coerce.date().optional(),
   overtimeApprovedAt: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 export const insertLeaveSchema = createInsertSchema(leaves, {
   startDate: z.coerce.date(),

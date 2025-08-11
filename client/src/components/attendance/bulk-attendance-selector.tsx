@@ -99,21 +99,18 @@ export default function BulkAttendanceSelector() {
 
         const attendanceData = {
           employeeId,
-          date: selectedDate,
+          date: new Date(selectedDate),
           status,
-          checkIn: status === 'present' ? `${selectedDate}T09:00:00` : null,
-          checkOut: status === 'present' ? `${selectedDate}T17:00:00` : null,
-          hoursWorked: status === 'present' ? "8.00" : "0.00",
-          regularHours: status === 'present' ? "8.00" : "0.00",
+          checkIn: status === 'present' ? new Date(`${selectedDate}T09:00:00`) : null,
+          checkOut: status === 'present' ? new Date(`${selectedDate}T17:00:00`) : null,
+          hoursWorked: status === 'present' ? 8.0 : 0.0,
+          regularHours: status === 'present' ? 8.0 : 0.0,
+          overtimeHours: 0.0,
           workLocation: "office",
           isRemote: false,
           isFieldWork: false,
           lateArrival: false,
           earlyDeparture: false,
-          overtimeHours: "0.00",
-          shiftId: null,
-          biometricDeviceId: null,
-          deviceName: "Manual Entry (Offline)",
           notes: `Manually marked ${status} via bulk selection (Hardware device offline)`,
         };
 
@@ -130,7 +127,9 @@ export default function BulkAttendanceSelector() {
             });
 
         if (!response.ok) {
-          throw new Error(`Failed to mark employee ${employeeId} as ${status}`);
+          const errorData = await response.json();
+          console.error('Server validation errors:', errorData);
+          throw new Error(`Failed to mark employee ${employeeId} as ${status}: ${JSON.stringify(errorData.errors || errorData.message)}`);
         }
         return response.json();
       });
