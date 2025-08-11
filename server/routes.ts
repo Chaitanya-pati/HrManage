@@ -983,25 +983,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       switch (reportType) {
         case 'monthly-payslips':
           reportData = await storage.getPayroll({
-            employeeId: employeeId as string,
-            month: startDate ? new Date(startDate as string).getMonth() + 1 : undefined,
-            year: startDate ? new Date(startDate as string).getFullYear() : undefined
+            employeeId: employeeId as string
           });
           break;
           
         case 'attendance-summary':
           reportData = await storage.getAttendance({
-            employeeId: employeeId as string,
-            startDate: startDate ? new Date(startDate as string) : undefined,
-            endDate: endDate ? new Date(endDate as string) : undefined
+            employeeId: employeeId as string
           });
           break;
           
         case 'late-coming-report':
-          const allAttendance = await storage.getAttendance({
-            startDate: startDate ? new Date(startDate as string) : undefined,
-            endDate: endDate ? new Date(endDate as string) : undefined
-          });
+          const allAttendance = await storage.getAttendance({});
           reportData = allAttendance.filter((record: any) => record.status === 'late');
           break;
           

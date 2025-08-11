@@ -28,23 +28,25 @@ export async function generateAttendanceData() {
         attendanceData.push({
           employeeId: employee.id,
           date: d.toISOString().split('T')[0],
-          checkIn: `${checkInHour.toString().padStart(2, '0')}:${checkInMinute.toString().padStart(2, '0')}`,
-          checkOut: `${checkOutHour.toString().padStart(2, '0')}:${checkOutMinute.toString().padStart(2, '0')}`,
+          clockIn: `${checkInHour.toString().padStart(2, '0')}:${checkInMinute.toString().padStart(2, '0')}`,
+          clockOut: `${checkOutHour.toString().padStart(2, '0')}:${checkOutMinute.toString().padStart(2, '0')}`,
           status: isLate ? 'late' : 'present',
-          workingHours: (checkOutHour - checkInHour) + ((checkOutMinute - checkInMinute) / 60),
+          totalHours: (checkOutHour - checkInHour) + ((checkOutMinute - checkInMinute) / 60),
           overtimeHours: Math.max(0, (checkOutHour - 18) + ((checkOutMinute) / 60)),
-          remarks: isLate ? 'Late arrival' : null
+          breakTime: 60,
+          isManualEntry: false
         });
       } else {
         attendanceData.push({
           employeeId: employee.id,
           date: d.toISOString().split('T')[0],
-          checkIn: null,
-          checkOut: null,
+          clockIn: null,
+          clockOut: null,
           status: 'absent',
-          workingHours: 0,
+          totalHours: 0,
           overtimeHours: 0,
-          remarks: 'Absent'
+          breakTime: 0,
+          isManualEntry: false
         });
       }
     }
@@ -103,9 +105,7 @@ export async function generatePayrollData() {
         employeeId: employee.id,
         payPeriodStart: period.startDate,
         payPeriodEnd: period.endDate,
-        month: period.month,
-        year: period.year,
-        baseSalary: baseSalary.toString(),
+        baseSalary: baseSalary,
         allowances: JSON.stringify({
           hra: hra,
           conveyance: conveyance,
@@ -117,20 +117,14 @@ export async function generatePayrollData() {
           esi: esiDeduction,
           tds: tdsDeduction
         }),
-        overtimePay: overtimePay.toString(),
-        overtimeHours: overtimeHours.toString(),
-        grossPay: (grossPay + overtimePay).toString(),
-        taxDeductions: tdsDeduction.toString(),
-        pfDeduction: pfDeduction.toString(),
-        esiDeduction: esiDeduction.toString(),
-        netPay: (netPay + overtimePay).toString(),
+        overtimePay: overtimePay,
+        grossPay: (grossPay + overtimePay),
+        taxDeductions: tdsDeduction,
+        netPay: (netPay + overtimePay),
         payrollStatus: 'processed',
         processedAt: new Date().toISOString(),
-        processedBy: 'system',
         paidAt: new Date().toISOString(),
-        payslipGenerated: true,
-        bankTransferStatus: 'completed',
-        remarks: `Salary for ${period.month}/${period.year}`
+        payslipGenerated: true
       });
     }
   }
@@ -173,13 +167,16 @@ export async function generateLeaveData() {
         leaveType: leaveType,
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0],
-        totalDays: duration.toString(),
+        days: duration,
         reason: `${leaveType} leave request`,
         status: status,
         appliedDate: startDate.toISOString().split('T')[0],
-        approverId: employee.managerId || null,
-        approvedDate: status === 'approved' ? startDate.toISOString().split('T')[0] : null,
-        comments: status === 'rejected' ? 'Rejected due to workload' : null
+        reviewedBy: employee.managerId || null,
+        reviewedDate: status === 'approved' ? startDate.toISOString().split('T')[0] : null,
+        reviewComments: status === 'rejected' ? 'Rejected due to workload' : null,
+        isHalfDay: false,
+        halfDaySlot: null,
+        attachments: null
       });
     }
   }
