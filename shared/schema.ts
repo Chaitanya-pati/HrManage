@@ -300,6 +300,57 @@ export const payroll = sqliteTable("payroll", {
   updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
 });
 
+// Employee-specific allowances and benefits
+export const employeeAllowances = sqliteTable("employee_allowances", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(16))))`),
+  employeeId: text("employee_id").notNull(),
+  allowanceType: text("allowance_type").notNull(), // "travel", "mobile", "food", "transport", "special", "housing", etc.
+  amount: real("amount").notNull(),
+  isPercentage: integer("is_percentage", { mode: 'boolean' }).default(false),
+  frequency: text("frequency").notNull().default("monthly"), // "monthly", "quarterly", "yearly", "one-time"
+  startDate: integer("start_date", { mode: 'timestamp' }).notNull(),
+  endDate: integer("end_date", { mode: 'timestamp' }),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  description: text("description"),
+  approvedBy: text("approved_by"),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Employee-specific deductions
+export const employeeDeductions = sqliteTable("employee_deductions", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(16))))`),
+  employeeId: text("employee_id").notNull(),
+  deductionType: text("deduction_type").notNull(), // "loan", "advance", "insurance", "disciplinary", "other"
+  amount: real("amount").notNull(),
+  isPercentage: integer("is_percentage", { mode: 'boolean' }).default(false),
+  frequency: text("frequency").notNull().default("monthly"),
+  startDate: integer("start_date", { mode: 'timestamp' }).notNull(),
+  endDate: integer("end_date", { mode: 'timestamp' }),
+  remainingAmount: real("remaining_amount"),
+  installmentAmount: real("installment_amount"),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  description: text("description"),
+  approvedBy: text("approved_by"),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Employee leave balances and entitlements
+export const employeeLeaveBalances = sqliteTable("employee_leave_balances", {
+  id: text("id").primaryKey().default(sql`(lower(hex(randomblob(16))))`),
+  employeeId: text("employee_id").notNull(),
+  leaveType: text("leave_type").notNull(), // "annual", "sick", "casual", "maternity", "paternity", "compensatory"
+  totalEntitlement: real("total_entitlement").notNull(),
+  usedLeaves: real("used_leaves").default(0),
+  remainingLeaves: real("remaining_leaves").notNull(),
+  carryForward: real("carry_forward").default(0),
+  year: integer("year").notNull(),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: integer("created_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: integer("updated_at", { mode: 'timestamp' }).default(sql`CURRENT_TIMESTAMP`),
+});
+
 export const salarySlips = sqliteTable("salary_slips", {
   id: text("id").primaryKey().default(sql`(lower(hex(randomblob(16))))`),
   payrollId: text("payroll_id").notNull(),
@@ -382,6 +433,27 @@ export const insertPayrollSchema = createInsertSchema(payroll).omit({
 export const insertPerformanceSchema = createInsertSchema(performance);
 export const insertJobOpeningSchema = createInsertSchema(jobOpenings);
 export const insertApplicationSchema = createInsertSchema(applications);
+export const insertEmployeeAllowanceSchema = createInsertSchema(employeeAllowances, {
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertEmployeeDeductionSchema = createInsertSchema(employeeDeductions, {
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const insertEmployeeLeaveBalanceSchema = createInsertSchema(employeeLeaveBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 // Types
 export type User = typeof users.$inferSelect;
@@ -394,6 +466,12 @@ export type Payroll = typeof payroll.$inferSelect;
 export type Performance = typeof performance.$inferSelect;
 export type JobOpening = typeof jobOpenings.$inferSelect;
 export type Application = typeof applications.$inferSelect;
+export type EmployeeAllowance = typeof employeeAllowances.$inferSelect;
+export type EmployeeDeduction = typeof employeeDeductions.$inferSelect;
+export type EmployeeLeaveBalance = typeof employeeLeaveBalances.$inferSelect;
+export type InsertEmployeeAllowance = z.infer<typeof insertEmployeeAllowanceSchema>;
+export type InsertEmployeeDeduction = z.infer<typeof insertEmployeeDeductionSchema>;
+export type InsertEmployeeLeaveBalance = z.infer<typeof insertEmployeeLeaveBalanceSchema>;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type InsertDepartment = z.infer<typeof insertDepartmentSchema>;

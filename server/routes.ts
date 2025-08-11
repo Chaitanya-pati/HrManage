@@ -8,10 +8,12 @@ import {
   insertLeaveSchema,
   insertPayrollSchema,
   insertPerformanceSchema,
-
   insertShiftSchema,
   insertJobOpeningSchema,
-  insertApplicationSchema
+  insertApplicationSchema,
+  insertEmployeeAllowanceSchema,
+  insertEmployeeDeductionSchema,
+  insertEmployeeLeaveBalanceSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -581,6 +583,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching activities:", error);
       res.status(500).json({ message: "Failed to fetch activities" });
+    }
+  });
+
+  // Employee Allowances API
+  app.get("/api/employees/:employeeId/allowances", async (req, res) => {
+    try {
+      const allowances = await storage.getEmployeeAllowances(req.params.employeeId);
+      res.json(allowances);
+    } catch (error) {
+      console.error("Error fetching employee allowances:", error);
+      res.status(500).json({ message: "Failed to fetch employee allowances" });
+    }
+  });
+
+  app.post("/api/employees/:employeeId/allowances", async (req, res) => {
+    try {
+      const result = insertEmployeeAllowanceSchema.safeParse({
+        ...req.body,
+        employeeId: req.params.employeeId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid allowance data", errors: result.error.errors });
+      }
+
+      const allowance = await storage.createEmployeeAllowance(result.data);
+      res.status(201).json(allowance);
+    } catch (error) {
+      console.error("Error creating employee allowance:", error);
+      res.status(500).json({ message: "Failed to create employee allowance" });
+    }
+  });
+
+  // Employee Deductions API
+  app.get("/api/employees/:employeeId/deductions", async (req, res) => {
+    try {
+      const deductions = await storage.getEmployeeDeductions(req.params.employeeId);
+      res.json(deductions);
+    } catch (error) {
+      console.error("Error fetching employee deductions:", error);
+      res.status(500).json({ message: "Failed to fetch employee deductions" });
+    }
+  });
+
+  app.post("/api/employees/:employeeId/deductions", async (req, res) => {
+    try {
+      const result = insertEmployeeDeductionSchema.safeParse({
+        ...req.body,
+        employeeId: req.params.employeeId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid deduction data", errors: result.error.errors });
+      }
+
+      const deduction = await storage.createEmployeeDeduction(result.data);
+      res.status(201).json(deduction);
+    } catch (error) {
+      console.error("Error creating employee deduction:", error);
+      res.status(500).json({ message: "Failed to create employee deduction" });
+    }
+  });
+
+  // Employee Leave Balances API
+  app.get("/api/employees/:employeeId/leave-balances", async (req, res) => {
+    try {
+      const balances = await storage.getEmployeeLeaveBalances(req.params.employeeId);
+      res.json(balances);
+    } catch (error) {
+      console.error("Error fetching employee leave balances:", error);
+      res.status(500).json({ message: "Failed to fetch employee leave balances" });
+    }
+  });
+
+  app.post("/api/employees/:employeeId/leave-balances", async (req, res) => {
+    try {
+      const result = insertEmployeeLeaveBalanceSchema.safeParse({
+        ...req.body,
+        employeeId: req.params.employeeId
+      });
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid leave balance data", errors: result.error.errors });
+      }
+
+      const balance = await storage.createEmployeeLeaveBalance(result.data);
+      res.status(201).json(balance);
+    } catch (error) {
+      console.error("Error creating employee leave balance:", error);
+      res.status(500).json({ message: "Failed to create employee leave balance" });
     }
   });
 

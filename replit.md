@@ -10,6 +10,17 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes (2025-08-11)
 
+### Employee-Specific Allowances & Benefits System (2025-08-11)
+- **Complete employee allowances management system** for individual employee benefits
+- **Added three new database tables**: employee_allowances, employee_deductions, employee_leave_balances
+- **Individual allowance types**: travel, mobile, food, transport, housing, education, medical, internet, uniform, vehicle
+- **Flexible frequency options**: monthly, quarterly, yearly, one-time payments
+- **Comprehensive deduction management**: loans, advances, insurance, disciplinary actions
+- **Custom leave balance tracking**: annual, sick, casual, maternity, paternity, compensatory leave
+- **Real-time allowance summaries** with monthly/yearly totals and active status
+- **API endpoints for CRUD operations** on employee-specific benefits
+- **Sample data populated** for demonstration across multiple employees
+
 ### Bulk Attendance Selection Feature (2025-08-11)
 - **Added comprehensive bulk attendance management** for when biometric devices are offline
 - **Created new "Bulk Selection" view** in Time & Attendance section with employee checkboxes

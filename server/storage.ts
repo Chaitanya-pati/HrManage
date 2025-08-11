@@ -9,7 +9,11 @@ import {
   type Shift, type InsertShift,
   type JobOpening, type InsertJobOpening,
   type Application, type InsertApplication,
-  users, departments, employees, leaves, attendance, payroll, performance, shifts, jobOpenings, applications
+  type EmployeeAllowance, type InsertEmployeeAllowance,
+  type EmployeeDeduction, type InsertEmployeeDeduction,
+  type EmployeeLeaveBalance, type InsertEmployeeLeaveBalance,
+  users, departments, employees, leaves, attendance, payroll, performance, shifts, jobOpenings, applications,
+  employeeAllowances, employeeDeductions, employeeLeaveBalances
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -95,6 +99,24 @@ export interface IStorage {
   // Activities
   getActivities(limit?: number): Promise<any[]>;
   createActivity(activity: any): Promise<any>;
+
+  // Employee Allowances
+  getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowance[]>;
+  createEmployeeAllowance(allowance: InsertEmployeeAllowance): Promise<EmployeeAllowance>;
+  updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowance>): Promise<EmployeeAllowance | undefined>;
+  deleteEmployeeAllowance(id: string): Promise<boolean>;
+
+  // Employee Deductions
+  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]>;
+  createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction>;
+  updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeduction>): Promise<EmployeeDeduction | undefined>;
+  deleteEmployeeDeduction(id: string): Promise<boolean>;
+
+  // Employee Leave Balances
+  getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalance[]>;
+  createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalance): Promise<EmployeeLeaveBalance>;
+  updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalance>): Promise<EmployeeLeaveBalance | undefined>;
+  deleteEmployeeLeaveBalance(id: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -490,6 +512,87 @@ export class DatabaseStorage implements IStorage {
   async createActivity(activity: any): Promise<any> {
     // Return the activity as-is for now - activities table would need to be implemented
     return activity;
+  }
+
+  // Employee Allowances
+  async getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowance[]> {
+    const result = await db.select().from(employeeAllowances)
+      .where(and(eq(employeeAllowances.employeeId, employeeId), eq(employeeAllowances.isActive, true)));
+    return result;
+  }
+
+  async createEmployeeAllowance(allowance: InsertEmployeeAllowance): Promise<EmployeeAllowance> {
+    const result = await db.insert(employeeAllowances).values(allowance).returning();
+    return result[0];
+  }
+
+  async updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowance>): Promise<EmployeeAllowance | undefined> {
+    const result = await db.update(employeeAllowances)
+      .set({ ...allowance, updatedAt: new Date() })
+      .where(eq(employeeAllowances.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEmployeeAllowance(id: string): Promise<boolean> {
+    const result = await db.update(employeeAllowances)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(employeeAllowances.id, id));
+    return result.changes > 0;
+  }
+
+  // Employee Deductions
+  async getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]> {
+    const result = await db.select().from(employeeDeductions)
+      .where(and(eq(employeeDeductions.employeeId, employeeId), eq(employeeDeductions.isActive, true)));
+    return result;
+  }
+
+  async createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction> {
+    const result = await db.insert(employeeDeductions).values(deduction).returning();
+    return result[0];
+  }
+
+  async updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeduction>): Promise<EmployeeDeduction | undefined> {
+    const result = await db.update(employeeDeductions)
+      .set({ ...deduction, updatedAt: new Date() })
+      .where(eq(employeeDeductions.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEmployeeDeduction(id: string): Promise<boolean> {
+    const result = await db.update(employeeDeductions)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(employeeDeductions.id, id));
+    return result.changes > 0;
+  }
+
+  // Employee Leave Balances
+  async getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalance[]> {
+    const result = await db.select().from(employeeLeaveBalances)
+      .where(and(eq(employeeLeaveBalances.employeeId, employeeId), eq(employeeLeaveBalances.isActive, true)));
+    return result;
+  }
+
+  async createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalance): Promise<EmployeeLeaveBalance> {
+    const result = await db.insert(employeeLeaveBalances).values(balance).returning();
+    return result[0];
+  }
+
+  async updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalance>): Promise<EmployeeLeaveBalance | undefined> {
+    const result = await db.update(employeeLeaveBalances)
+      .set({ ...balance, updatedAt: new Date() })
+      .where(eq(employeeLeaveBalances.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteEmployeeLeaveBalance(id: string): Promise<boolean> {
+    const result = await db.update(employeeLeaveBalances)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(employeeLeaveBalances.id, id));
+    return result.changes > 0;
   }
 }
 
