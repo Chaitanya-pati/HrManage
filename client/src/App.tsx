@@ -20,6 +20,7 @@ import Shifts from "./pages/shifts";
 import Analytics from "@/pages/analytics";
 import Reports from "@/pages/reports";
 import ReportDetail from "@/pages/report-detail";
+import SalarySettings from "@/pages/salary-settings";
 import Settings from "@/pages/settings";
 import PlaceholderPage from "@/pages/placeholder";
 import NotFound from "@/pages/not-found";
@@ -83,6 +84,7 @@ function Router() {
       <Route path="/reports/:reportId">
         {(params) => <ReportDetail reportId={params.reportId!} />}
       </Route>
+      <Route path="/salary-settings" component={SalarySettings} />
       <Route path="/settings" component={Settings} />
       <Route path="/users"
         component={() =>

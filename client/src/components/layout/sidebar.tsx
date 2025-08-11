@@ -47,6 +47,7 @@ const menuItems = [
     items: [
       { icon: "fas fa-dollar-sign", label: "Payroll Processing", path: "/payroll" },
       { icon: "fas fa-calculator", label: "Advanced Payroll", path: "/advanced-payroll" },
+      { icon: "fas fa-percentage", label: "Salary Settings", path: "/salary-settings" },
       { icon: "fas fa-shield-alt", label: "Benefits Administration", path: "/benefits" },
       { icon: "fas fa-receipt", label: "Expense Management", path: "/expenses" },
     ]
