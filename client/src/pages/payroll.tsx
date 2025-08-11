@@ -42,10 +42,16 @@ export default function PayrollPage() {
           employeeId: employee.id,
           month: selectedMonth,
           year: selectedYear,
-          baseSalary: baseSalary.toString(),
-          allowances: allowances.toString(),
-          deductions: deductions.toString(),
-          netSalary: netSalary.toString(),
+          totalWorkingDays: 30,
+          daysPresent: 25,
+          daysAbsent: 5,
+          baseSalary: baseSalary,
+          hra: baseSalary * 0.1,
+          conveyanceAllowance: 1500,
+          medicalAllowance: 1000,
+          grossSalary: baseSalary + (baseSalary * 0.1) + 1500 + 1000,
+          totalDeductions: baseSalary * 0.15,
+          netSalary: (baseSalary + (baseSalary * 0.1) + 1500 + 1000) - (baseSalary * 0.15),
           status: "processed"
         });
       }

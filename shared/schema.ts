@@ -374,7 +374,11 @@ export const insertLeaveSchema = createInsertSchema(leaves, {
   startDate: z.coerce.date(),
   endDate: z.coerce.date(),
 });
-export const insertPayrollSchema = createInsertSchema(payroll);
+export const insertPayrollSchema = createInsertSchema(payroll).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 export const insertPerformanceSchema = createInsertSchema(performance);
 export const insertJobOpeningSchema = createInsertSchema(jobOpenings);
 export const insertApplicationSchema = createInsertSchema(applications);
