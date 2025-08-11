@@ -247,11 +247,11 @@ export class DatabaseStorage implements IStorage {
     // Convert timestamps back to Date objects
     return result.map(leave => ({
       ...leave,
-      startDate: new Date(leave.startDate * 1000),
-      endDate: new Date(leave.endDate * 1000),
-      createdAt: new Date(leave.createdAt * 1000),
-      approvedAt: leave.approvedAt ? new Date(leave.approvedAt * 1000) : null
-    }));
+      startDate: new Date(leave.startDate as any),
+      endDate: new Date(leave.endDate as any),
+      createdAt: new Date((leave.createdAt as any) * 1000),
+      approvedAt: leave.approvedAt ? new Date((leave.approvedAt as any) * 1000) : null
+    })) as Leave[];
   }
 
   async createLeave(leave: InsertLeave): Promise<Leave> {
@@ -261,8 +261,8 @@ export class DatabaseStorage implements IStorage {
     const leaveData = {
       ...leave,
       id,
-      startDate: Math.floor(new Date(leave.startDate).getTime() / 1000),
-      endDate: Math.floor(new Date(leave.endDate).getTime() / 1000),
+      startDate: Math.floor(new Date(leave.startDate).getTime()),
+      endDate: Math.floor(new Date(leave.endDate).getTime()),
       createdAt: Math.floor(Date.now() / 1000)
     };
     
@@ -271,11 +271,11 @@ export class DatabaseStorage implements IStorage {
     // Convert timestamps back to Date objects for response
     return {
       ...result[0],
-      startDate: new Date(result[0].startDate * 1000),
-      endDate: new Date(result[0].endDate * 1000),
-      createdAt: new Date(result[0].createdAt * 1000),
-      approvedAt: result[0].approvedAt ? new Date(result[0].approvedAt * 1000) : null
-    };
+      startDate: new Date(result[0].startDate as any),
+      endDate: new Date(result[0].endDate as any),
+      createdAt: new Date((result[0].createdAt as any) * 1000),
+      approvedAt: result[0].approvedAt ? new Date((result[0].approvedAt as any) * 1000) : null
+    } as Leave;
   }
 
   async updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined> {
