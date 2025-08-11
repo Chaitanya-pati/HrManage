@@ -350,7 +350,13 @@ export default function Attendance() {
                   </SelectContent>
                 </Select>
                 {/* Request Leave Button */}
-                <Button onClick={() => setLocation('/leaves')}>
+                <Button 
+                  onClick={() => {
+                    console.log('Request Leave button clicked - navigating to /leaves');
+                    setLocation('/leaves');
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Request Leave
                 </Button>
