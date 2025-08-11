@@ -129,18 +129,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid employee data", errors: result.error.errors });
       }
 
-      // Check if email already exists
-      const existingEmployee = await storage.getEmployeeByEmail(result.data.email);
-      if (existingEmployee) {
-        return res.status(400).json({ message: "Employee with this email already exists" });
-      }
-
       const employee = await storage.createEmployee(result.data);
 
       await storage.createActivity({
         type: "employee",
         title: "New employee added",
-        description: `${employee.firstName} ${employee.lastName} joined the company`,
+        description: `${employee.firstName} ${employee.lastName} was added to the system`,
         entityType: "employee",
         entityId: employee.id,
         userId: null,
@@ -188,18 +182,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Shifts
+  app.get("/api/shifts", async (req, res) => {
+    try {
+      const shifts = await storage.getShifts();
+      res.json(shifts);
+    } catch (error) {
+      console.error("Error fetching shifts:", error);
+      res.status(500).json({ message: "Failed to fetch shifts" });
+    }
+  });
+
+  app.post("/api/shifts", async (req, res) => {
+    try {
+      const result = insertShiftSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid shift data", errors: result.error.errors });
+      }
+
+      const shift = await storage.createShift(result.data);
+      res.status(201).json(shift);
+    } catch (error) {
+      console.error("Error creating shift:", error);
+      res.status(500).json({ message: "Failed to create shift" });
+    }
+  });
+
   // Attendance
   app.get("/api/attendance", async (req, res) => {
     try {
       const { employeeId, startDate, endDate } = req.query;
       const filters: any = {};
-
+      
       if (employeeId) filters.employeeId = employeeId as string;
       if (startDate) filters.startDate = new Date(startDate as string);
       if (endDate) filters.endDate = new Date(endDate as string);
 
-      const attendance = await storage.getAttendance(filters);
-      res.json(attendance);
+      const attendanceRecords = await storage.getAttendance(filters);
+      res.json(attendanceRecords);
     } catch (error) {
       console.error("Error fetching attendance:", error);
       res.status(500).json({ message: "Failed to fetch attendance" });
@@ -221,528 +241,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get single attendance record
-  app.get("/api/attendance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const attendance = await storage.getAttendanceById(id);
-      if (!attendance) {
-        return res.status(404).json({ message: "Attendance record not found" });
-      }
-      res.json(attendance);
-    } catch (error) {
-      console.error("Error fetching attendance:", error);
-      res.status(500).json({ message: "Failed to fetch attendance record" });
-    }
-  });
-
-  // Update attendance (PUT for complete update)
-  app.put("/api/attendance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = insertAttendanceSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
-      }
-
-      const attendance = await storage.updateAttendance(id, result.data);
-      if (!attendance) {
-        return res.status(404).json({ message: "Attendance not found" });
-      }
-
-      await storage.createActivity({
-        type: "attendance",
-        title: "Attendance updated",
-        description: `Attendance record updated for employee`,
-        entityType: "attendance",
-        entityId: attendance.id,
-        userId: null,
-      });
-
-      res.json(attendance);
-    } catch (error) {
-      console.error("Error updating attendance:", error);
-      res.status(500).json({ message: "Failed to update attendance" });
-    }
-  });
-
-  // Update attendance (PATCH for partial update)
-  app.patch("/api/attendance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = insertAttendanceSchema.partial().safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid attendance data", errors: result.error.errors });
-      }
-
-      const attendance = await storage.updateAttendance(id, result.data);
-      if (!attendance) {
-        return res.status(404).json({ message: "Attendance not found" });
-      }
-
-      res.json(attendance);
-    } catch (error) {
-      console.error("Error updating attendance:", error);
-      res.status(500).json({ message: "Failed to update attendance" });
-    }
-  });
-
-  // Delete attendance record
-  app.delete("/api/attendance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const success = await storage.deleteAttendance(id);
-      if (!success) {
-        return res.status(404).json({ message: "Attendance record not found" });
-      }
-
-      await storage.createActivity({
-        type: "attendance",
-        title: "Attendance deleted",
-        description: `Attendance record was deleted`,
-        entityType: "attendance",
-        entityId: id,
-        userId: null,
-      });
-
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting attendance:", error);
-      res.status(500).json({ message: "Failed to delete attendance" });
-    }
-  });
-
-  // Bulk operations for attendance
-  app.post("/api/attendance/bulk", async (req, res) => {
-    try {
-      const { operation, attendanceIds, data } = req.body;
-
-      if (operation === "delete") {
-        const results = [];
-        for (const id of attendanceIds) {
-          const success = await storage.deleteAttendance(id);
-          results.push({ id, success });
-        }
-        res.json({ message: "Bulk delete completed", results });
-      } else if (operation === "update") {
-        const results = [];
-        for (const id of attendanceIds) {
-          const attendance = await storage.updateAttendance(id, data);
-          results.push({ id, attendance });
-        }
-        res.json({ message: "Bulk update completed", results });
-      } else {
-        res.status(400).json({ message: "Invalid bulk operation" });
-      }
-    } catch (error) {
-      console.error("Error in bulk attendance operation:", error);
-      res.status(500).json({ message: "Failed to perform bulk operation" });
-    }
-  });
-
-  // Client Sites
-  app.get("/api/client-sites", async (req, res) => {
-    try {
-      const clientSites = await storage.getClientSites();
-      res.json(clientSites);
-    } catch (error) {
-      console.error("Error fetching client sites:", error);
-      res.status(500).json({ message: "Failed to fetch client sites" });
-    }
-  });
-
-  app.post("/api/client-sites", async (req, res) => {
-    try {
-      const clientSite = await storage.createClientSite(req.body);
-      res.status(201).json(clientSite);
-    } catch (error) {
-      console.error("Error creating client site:", error);
-      res.status(500).json({ message: "Failed to create client site" });
-    }
-  });
-
-  // Biometric Devices
-  app.get("/api/biometric-devices", async (req, res) => {
-    try {
-      const devices = await storage.getBiometricDevices();
-      res.json(devices);
-    } catch (error) {
-      console.error("Error fetching biometric devices:", error);
-      res.status(500).json({ message: "Failed to fetch biometric devices" });
-    }
-  });
-
-  app.post("/api/biometric-devices", async (req, res) => {
-    try {
-      const device = await storage.createBiometricDevice(req.body);
-      res.status(201).json(device);
-    } catch (error) {
-      console.error("Error creating biometric device:", error);
-      res.status(500).json({ message: "Failed to create biometric device" });
-    }
-  });
-
-  // Biometric punch data endpoint
-  app.post("/api/biometric/punch", async (req, res) => {
-    try {
-      const { deviceId, employeeId, biometricId, punchTime, punchType } = req.body;
-
-      // Verify biometric device
-      const device = await storage.getBiometricDevice(deviceId);
-      if (!device || !device.isActive) {
-        return res.status(400).json({ message: "Invalid or inactive biometric device" });
-      }
-
-      // Process biometric punch
-      const attendance = await storage.processBiometricPunch({
-        deviceId,
-        employeeId,
-        biometricId,
-        punchTime: new Date(punchTime),
-        punchType, // IN, OUT
-        location: device.location,
-        clientSiteId: device.clientSiteId
-      });
-
-      res.json({ success: true, attendance });
-    } catch (error) {
-      console.error("Error processing biometric punch:", error);
-      res.status(500).json({ message: "Failed to process biometric punch" });
-    }
-  });
-
-  // Biometric device sync endpoint for external metric software
-  app.post("/api/biometric/sync", async (req, res) => {
-    try {
-      const { deviceId, employeeData, timestamp, verificationMethod } = req.body;
-
-      // Batch process attendance records from external biometric system
-      const results = [];
-
-      for (const record of employeeData) {
-        const attendance = await storage.createAttendance({
-          employeeId: record.employeeId,
-          date: new Date(record.date).toISOString().split('T')[0],
-          checkIn: record.checkIn ? new Date(record.checkIn) : null,
-          checkOut: record.checkOut ? new Date(record.checkOut) : null,
-          gateEntry: record.gateEntry ? new Date(record.gateEntry).toISOString() : null,
-          gateExit: record.gateExit ? new Date(record.gateExit).toISOString() : null,
-          biometricDeviceIn: deviceId,
-          biometricDeviceOut: deviceId,
-          biometricId: record.biometricId,
-          fingerprintVerified: verificationMethod.includes('fingerprint'),
-          faceRecognitionVerified: verificationMethod.includes('face'),
-          status: record.status || 'present',
-          hoursWorked: record.hoursWorked || "0",
-          overtimeHours: record.overtimeHours || "0",
-          location: record.location || 'office'
-        });
-
-        results.push(attendance);
-      }
-
-      // Update device sync time
-      await storage.updateBiometricDevice(deviceId, {
-        lastSyncTime: new Date().toISOString()
-      });
-
-      res.json({ 
-        success: true, 
-        processed: results.length,
-        message: `Successfully synced ${results.length} attendance records`
-      });
-    } catch (error) {
-      console.error("Error syncing biometric data:", error);
-      res.status(500).json({ message: "Failed to sync biometric data" });
-    }
-  });
-
-  // Software attendance marking endpoint
-  app.post("/api/attendance/mark", async (req, res) => {
-    try {
-      const { employeeIds, date, status, markAll } = req.body;
-
-      if (markAll) {
-        // Mark all employees
-        const employees = await storage.getEmployees();
-        const results = [];
-        
-        for (const emp of employees) {
-          const attendanceData = {
-            employeeId: emp.id,
-            date,
-            status,
-            checkIn: status === 'present' ? new Date(`${date}T09:00:00`) : null,
-            checkOut: status === 'present' ? new Date(`${date}T17:00:00`) : null,
-            hoursWorked: status === 'present' ? "8.00" : "0",
-            workLocation: "office",
-            notes: `Bulk marked ${status} via software`,
-          };
-
-          // Check if record exists
-          const existingAttendance = await storage.getAttendance({
-            employeeId: emp.id,
-            startDate: new Date(date),
-            endDate: new Date(date)
-          });
-
-          let attendance;
-          if (existingAttendance.length > 0) {
-            attendance = await storage.updateAttendance(existingAttendance[0].id, attendanceData);
-          } else {
-            attendance = await storage.createAttendance(attendanceData);
-          }
-          
-          results.push(attendance);
-        }
-
-        await storage.createActivity({
-          type: "attendance",
-          title: `Bulk attendance marking`,
-          description: `All employees marked as ${status} for ${date}`,
-          entityType: "attendance",
-          entityId: null,
-          userId: null,
-        });
-
-        res.json({ success: true, processed: results.length, results });
-      } else {
-        // Mark specific employees
-        const results = [];
-        
-        for (const employeeId of employeeIds) {
-          const attendanceData: InsertAttendance = {
-            employeeId,
-            date: new Date(date),
-            status: status as "present" | "absent" | "late" | "early_out" | "on_leave" | "holiday",
-            checkIn: status === 'present' ? new Date(`${date}T09:00:00`) : null,
-            checkOut: status === 'present' ? new Date(`${date}T17:00:00`) : null,
-            hoursWorked: status === 'present' ? "8.00" : "0",
-            workLocation: "office",
-            notes: `Manually marked ${status} via software`,
-          };
-
-          const existingAttendance = await storage.getAttendance({
-            employeeId,
-            startDate: new Date(date),
-            endDate: new Date(date)
-          });
-
-          let attendance;
-          if (existingAttendance.length > 0) {
-            attendance = await storage.updateAttendance(existingAttendance[0].id, attendanceData);
-          } else {
-            attendance = await storage.createAttendance(attendanceData);
-          }
-          
-          results.push(attendance);
-        }
-
-        res.json({ success: true, processed: results.length, results });
-      }
-    } catch (error) {
-      console.error("Error marking attendance:", error);
-      res.status(500).json({ message: "Failed to mark attendance" });
-    }
-  });
-
-  // Metrix software integration endpoint
-  app.post("/api/metrix/attendance", async (req, res) => {
-    try {
-      const { 
-        employeeId, 
-        biometricId, 
-        deviceId, 
-        timestamp, 
-        punchType, 
-        verificationMethod,
-        location 
-      } = req.body;
-
-      console.log("Metrix attendance data received:", req.body);
-
-      // Validate required fields
-      if (!employeeId || !timestamp || !punchType) {
-        return res.status(400).json({ 
-          message: "Missing required fields: employeeId, timestamp, punchType" 
-        });
-      }
-
-      const attendanceDate = new Date(timestamp).toISOString().split('T')[0];
-      
-      // Find existing attendance for the day
-      const existingAttendance = await storage.getAttendance({
-        employeeId,
-        startDate: new Date(attendanceDate),
-        endDate: new Date(attendanceDate)
-      });
-
-      let attendance;
-      
-      if (existingAttendance.length > 0) {
-        // Update existing record
-        const record = existingAttendance[0];
-        const updates: any = {
-          biometricId: biometricId || record.biometricId,
-          fingerprintVerified: verificationMethod === 'fingerprint' || record.fingerprintVerified,
-          faceRecognitionVerified: verificationMethod === 'face' || record.faceRecognitionVerified,
-        };
-
-        if (punchType === 'IN' && !record.checkIn) {
-          updates.checkIn = new Date(timestamp);
-          updates.gateEntry = new Date(timestamp).toISOString();
-          updates.biometricDeviceIn = deviceId;
-          updates.status = 'present';
-        } else if (punchType === 'OUT' && record.checkIn && !record.checkOut) {
-          updates.checkOut = new Date(timestamp);
-          updates.gateExit = new Date(timestamp).toISOString();
-          updates.biometricDeviceOut = deviceId;
-          
-          // Calculate hours worked
-          const checkInTime = new Date(record.checkIn);
-          const checkOutTime = new Date(timestamp);
-          const hoursWorked = (checkOutTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60);
-          updates.hoursWorked = hoursWorked.toFixed(2);
-          updates.overtimeHours = Math.max(0, hoursWorked - 8).toFixed(2);
-        }
-
-        attendance = await storage.updateAttendance(record.id, updates);
-      } else {
-        // Create new record
-        const attendanceData: InsertAttendance = {
-          employeeId,
-          date: new Date(attendanceDate),
-          biometricId: biometricId || `METRIX_${Date.now()}`,
-          fingerprintVerified: verificationMethod === 'fingerprint',
-          faceRecognitionVerified: verificationMethod === 'face',
-          workLocation: location || 'office',
-          status: 'present' as const,
-          checkIn: punchType === 'IN' ? new Date(timestamp) : undefined,
-          gateEntry: punchType === 'IN' ? new Date(timestamp) : undefined,
-          biometricDeviceIn: punchType === 'IN' ? deviceId : undefined,
-        };
-
-        attendance = await storage.createAttendance(attendanceData);
-      }
-
-      // Log activity
-      await storage.createActivity({
-        type: "attendance",
-        title: "Biometric attendance recorded",
-        description: `Attendance ${punchType} recorded via Metrix software`,
-        entityType: "attendance",
-        entityId: attendance?.id || "unknown",
-        userId: null,
-      });
-
-      res.json({ 
-        success: true, 
-        attendance,
-        message: `${punchType} recorded successfully`
-      });
-
-    } catch (error) {
-      console.error("Error processing Metrix attendance:", error);
-      res.status(500).json({ 
-        message: "Failed to process attendance", 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-    }
-  });
-
-  // Overtime Requests
-  app.get("/api/overtime-requests", async (req, res) => {
-    try {
-      const { employeeId, status } = req.query;
-      const filters: any = {};
-
-      if (employeeId) filters.employeeId = employeeId as string;
-      if (status) filters.status = status as string;
-
-      const overtimeRequests = await storage.getOvertimeRequests(filters);
-      res.json(overtimeRequests);
-    } catch (error) {
-      console.error("Error fetching overtime requests:", error);
-      res.status(500).json({ message: "Failed to fetch overtime requests" });
-    }
-  });
-
-  app.post("/api/overtime-requests", async (req, res) => {
-    try {
-      const overtimeRequest = await storage.createOvertimeRequest(req.body);
-      res.status(201).json(overtimeRequest);
-    } catch (error) {
-      console.error("Error creating overtime request:", error);
-      res.status(500).json({ message: "Failed to create overtime request" });
-    }
-  });
-
-  app.patch("/api/overtime-requests/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { status, approvedBy, rejectionReason } = req.body;
-
-      const overtimeRequest = await storage.updateOvertimeRequest(id, {
-        status,
-        approvedBy,
-        approvedAt: status === 'approved' ? new Date() : undefined
-      });
-
-      if (!overtimeRequest) {
-        return res.status(404).json({ message: "Overtime request not found" });
-      }
-
-      res.json(overtimeRequest);
-    } catch (error) {
-      console.error("Error updating overtime request:", error);
-      res.status(500).json({ message: "Failed to update overtime request" });
-    }
-  });
-
-  // Shifts
-  app.get("/api/shifts", async (req, res) => {
-    try {
-      const shifts = await storage.getShifts();
-      console.log("Fetched shifts:", shifts); // Debug log
-      res.json(shifts);
-    } catch (error) {
-      console.error("Error fetching shifts:", error);
-      res.status(500).json({ message: "Failed to fetch shifts" });
-    }
-  });
-
-  app.post("/api/shifts", async (req, res) => {
-    try {
-      const result = insertShiftSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid shift data", errors: result.error.errors });
-      }
-
-      const shift = await storage.createShift(result.data);
-
-      await storage.createActivity({
-        type: "shift",
-        title: "New shift created",
-        description: `${shift.name} shift was created`,
-        entityType: "shift",
-        entityId: shift.id,
-        userId: null,
-      });
-
-      res.status(201).json(shift);
-    } catch (error) {
-      console.error("Error creating shift:", error);
-      res.status(500).json({ message: "Failed to create shift" });
-    }
-  });
-
-
   // Leaves
   app.get("/api/leaves", async (req, res) => {
     try {
       const { employeeId, status } = req.query;
       const filters: any = {};
-
+      
       if (employeeId) filters.employeeId = employeeId as string;
       if (status) filters.status = status as string;
 
@@ -766,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.createActivity({
         type: "leave",
         title: "Leave request submitted",
-        description: `Leave request for ${leave.type} leave`,
+        description: `Leave request for ${result.data.type} submitted`,
         entityType: "leave",
         entityId: leave.id,
         userId: null,
@@ -779,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/leaves/:id", async (req, res) => {
+  app.put("/api/leaves/:id", async (req, res) => {
     try {
       const { id } = req.params;
       const result = insertLeaveSchema.partial().safeParse(req.body);
@@ -789,18 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const leave = await storage.updateLeave(id, result.data);
       if (!leave) {
-        return res.status(404).json({ message: "Leave not found" });
-      }
-
-      if (result.data.status && ["approved", "rejected"].includes(result.data.status)) {
-        await storage.createActivity({
-          type: "leave",
-          title: `Leave request ${result.data.status}`,
-          description: `Leave request has been ${result.data.status}`,
-          entityType: "leave",
-          entityId: leave.id,
-          userId: null,
-        });
+        return res.status(404).json({ message: "Leave request not found" });
       }
 
       res.json(leave);
@@ -810,36 +303,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/leaves/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const success = await storage.deleteLeave(id);
-      if (!success) {
-        return res.status(404).json({ message: "Leave not found" });
-      }
-
-      await storage.createActivity({
-        type: "leave",
-        title: "Leave request deleted",
-        description: "Leave request was deleted",
-        entityType: "leave",
-        entityId: id,
-        userId: null,
-      });
-
-      res.status(204).send();
-    } catch (error) {
-      console.error("Error deleting leave:", error);
-      res.status(500).json({ message: "Failed to delete leave" });
-    }
-  });
-
   // Payroll
   app.get("/api/payroll", async (req, res) => {
     try {
       const { employeeId, month, year } = req.query;
       const filters: any = {};
-
+      
       if (employeeId) filters.employeeId = employeeId as string;
       if (month) filters.month = parseInt(month as string);
       if (year) filters.year = parseInt(year as string);
@@ -872,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { employeeId, year } = req.query;
       const filters: any = {};
-
+      
       if (employeeId) filters.employeeId = employeeId as string;
       if (year) filters.year = parseInt(year as string);
 
@@ -899,79 +368,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Activities
-  app.get("/api/activities", async (req, res) => {
+  // Job Openings
+  app.get("/api/job-openings", async (req, res) => {
     try {
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
-      const activities = await storage.getActivities(limit);
-      res.json(activities);
+      const jobOpenings = await storage.getJobOpenings();
+      res.json(jobOpenings);
     } catch (error) {
-      console.error("Error fetching activities:", error);
-      res.status(500).json({ message: "Failed to fetch activities" });
+      console.error("Error fetching job openings:", error);
+      res.status(500).json({ message: "Failed to fetch job openings" });
     }
   });
 
-  // Job Openings API endpoints
-  app.get("/api/jobs", async (req, res) => {
+  app.post("/api/job-openings", async (req, res) => {
     try {
-      const jobs = await storage.getJobOpenings();
-      res.json(jobs);
-    } catch (error) {
-      console.error("Error fetching jobs:", error);
-      res.status(500).json({ message: "Failed to fetch jobs" });
-    }
-  });
-
-  app.post("/api/jobs", async (req, res) => {
-    try {
-      console.log("Received job creation request:", req.body);
       const result = insertJobOpeningSchema.safeParse(req.body);
       if (!result.success) {
-        console.error("Job validation failed:", result.error.errors);
-        return res.status(400).json({ message: "Invalid job data", errors: result.error.errors });
+        return res.status(400).json({ message: "Invalid job opening data", errors: result.error.errors });
       }
 
-      const job = await storage.createJobOpening(result.data);
-      console.log("Job created successfully:", job.id);
-      res.status(201).json(job);
+      const jobOpening = await storage.createJobOpening(result.data);
+      res.status(201).json(jobOpening);
     } catch (error) {
-      console.error("Error creating job:", error);
-      res.status(500).json({ message: "Failed to create job", error: error.message });
+      console.error("Error creating job opening:", error);
+      res.status(500).json({ message: "Failed to create job opening" });
     }
   });
 
-  app.put("/api/jobs/:id", async (req, res) => {
+  // Job Applications
+  app.get("/api/job-applications", async (req, res) => {
     try {
-      const { id } = req.params;
-      const result = insertJobOpeningSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid job data", errors: result.error.errors });
-      }
-
-      const job = await storage.updateJobOpening(id, result.data);
-      res.json(job);
-    } catch (error) {
-      console.error("Error updating job:", error);
-      res.status(500).json({ message: "Failed to update job" });
-    }
-  });
-
-  app.delete("/api/jobs/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deleteJobOpening(id);
-      res.json({ message: "Job deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting job:", error);
-      res.status(500).json({ message: "Failed to delete job" });
-    }
-  });
-
-  // Job Applications API endpoints
-  app.get("/api/jobs/:jobId/applications", async (req, res) => {
-    try {
-      const { jobId } = req.params;
-      const applications = await storage.getJobApplications(jobId);
+      const { jobId } = req.query;
+      const applications = await storage.getJobApplications(jobId as string);
       res.json(applications);
     } catch (error) {
       console.error("Error fetching job applications:", error);
@@ -979,12 +406,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/jobs/:jobId/applications", async (req, res) => {
+  app.post("/api/job-applications", async (req, res) => {
     try {
-      const { jobId } = req.params;
-      const result = insertJobApplicationSchema.safeParse({ ...req.body, jobId });
+      const result = insertJobApplicationSchema.safeParse(req.body);
       if (!result.success) {
-        return res.status(400).json({ message: "Invalid application data", errors: result.error.errors });
+        return res.status(400).json({ message: "Invalid job application data", errors: result.error.errors });
       }
 
       const application = await storage.createJobApplication(result.data);
@@ -995,45 +421,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/applications/:id", async (req, res) => {
+  // Activities
+  app.get("/api/activities", async (req, res) => {
     try {
-      const { id } = req.params;
-      const application = await storage.updateJobApplication(id, req.body);
-      res.json(application);
+      const { limit } = req.query;
+      const activities = await storage.getActivities(limit ? parseInt(limit as string) : 50);
+      res.json(activities);
     } catch (error) {
-      console.error("Error updating job application:", error);
-      res.status(500).json({ message: "Failed to update job application" });
+      console.error("Error fetching activities:", error);
+      res.status(500).json({ message: "Failed to fetch activities" });
     }
   });
 
-  // Performance review update endpoint
-  app.put("/api/performance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = insertPerformanceSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ message: "Invalid performance data", errors: result.error.errors });
-      }
-
-      const performance = await storage.updatePerformance(id, result.data);
-      res.json(performance);
-    } catch (error) {
-      console.error("Error updating performance:", error);
-      res.status(500).json({ message: "Failed to update performance" });
-    }
-  });
-
-  app.delete("/api/performance/:id", async (req, res) => {
-    try {
-      const { id } = req.params;
-      await storage.deletePerformance(id);
-      res.json({ message: "Performance review deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting performance:", error);
-      res.status(500).json({ message: "Failed to delete performance" });
-    }
-  });
-
-  const httpServer = createServer(app);
-  return httpServer;
+  const server = createServer(app);
+  return server;
 }

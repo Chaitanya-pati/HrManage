@@ -14,48 +14,7 @@ import {
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
-import { eq, and, sql } from "drizzle-orm";
-
-// Define biometric device type from schema
-type BiometricDevice = {
-  id: string;
-  deviceId: string;
-  deviceName: string;
-  deviceType: string;
-  location: string;
-  isActive?: boolean;
-  clientSiteId?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type ClientSite = {
-  id: string;
-  name: string;
-  clientName: string;
-  siteCode: string;
-  address: any;
-  status: string;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-type OvertimeRequest = {
-  id: string;
-  employeeId: string;
-  requestedDate: Date;
-  estimatedHours: string;
-  actualHours?: string | null;
-  overtimeType: string;
-  reason: string;
-  status: string;
-  requestedBy: string;
-  approvedBy?: string | null;
-  approvedAt?: Date | null;
-  rejectionReason?: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-};
+import { eq, and, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   // Users
@@ -126,33 +85,6 @@ export interface IStorage {
   getActivities(limit?: number): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
 
-  // Client Sites
-  getClientSites(): Promise<ClientSite[]>;
-  createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite>;
-
-  // Biometric Devices  
-  getBiometricDevices(): Promise<BiometricDevice[]>;
-  getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined>;
-  createBiometricDevice(deviceData: Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice>;
-  updateBiometricDevice(deviceId: string, updates: Partial<Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined>;
-  deleteBiometricDevice(deviceId: string): Promise<boolean>;
-
-  // Overtime Requests
-  getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]>;
-  createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest>;
-  updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined>;
-
-  // Process Biometric Punches
-  processBiometricPunch(punchData: {
-    deviceId: string;
-    employeeId: string;
-    biometricId: string; // The ID from the biometric machine
-    punchTime: Date;
-    punchType: 'IN' | 'OUT'; // 'IN' for check-in, 'OUT' for check-out
-    location?: string;
-    clientSiteId?: string;
-  }): Promise<Attendance | undefined>;
-
   // Analytics
   getDashboardMetrics(): Promise<{
     totalEmployees: number;
@@ -165,1159 +97,504 @@ export interface IStorage {
   }>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User> = new Map();
-  private departments: Map<string, Department> = new Map();
-  private employees: Map<string, Employee> = new Map();
-  private shifts: Map<string, Shift> = new Map();
-  private attendance: Map<string, Attendance> = new Map();
-  private leaves: Map<string, Leave> = new Map();
-  private payroll: Map<string, Payroll> = new Map();
-  private performance: Map<string, Performance> = new Map();
-  private activities: Map<string, Activity> = new Map();
-  private jobOpenings: Map<string, JobOpening> = new Map();
-  private jobApplications: Map<string, JobApplication> = new Map();
-  private biometricDevices: Map<string, BiometricDevice> = new Map();
-  private clientSites: Map<string, ClientSite> = new Map();
-  private overtimeRequests: Map<string, OvertimeRequest> = new Map();
-
-  constructor() {
-    this.seedData();
-  }
-
-  private seedData() {
-    // Create sample departments
-    const departments = [
-      { name: "Engineering", description: "Software development and technical operations" },
-      { name: "Marketing", description: "Brand marketing and customer acquisition" },
-      { name: "Sales", description: "Business development and client relations" },
-      { name: "Human Resources", description: "Employee management and organizational development" },
-      { name: "Finance", description: "Financial planning and accounting" },
-      { name: "Operations", description: "Business operations and process management" },
-    ];
-
-    departments.forEach(dept => {
-      const id = randomUUID();
-      this.departments.set(id, {
-        id,
-        name: dept.name,
-        description: dept.description,
-        managerId: null,
-        createdAt: new Date(),
-      });
-    });
-
-    // Create sample employees
-    const employeeData = [
-      { firstName: "John", lastName: "Anderson", email: "john.anderson@company.com", position: "HR Manager", department: "Human Resources" },
-      { firstName: "Sarah", lastName: "Johnson", email: "sarah.johnson@company.com", position: "Senior Developer", department: "Engineering" },
-      { firstName: "Mike", lastName: "Chen", email: "mike.chen@company.com", position: "Marketing Manager", department: "Marketing" },
-      { firstName: "Emily", lastName: "Davis", email: "emily.davis@company.com", position: "HR Specialist", department: "Human Resources" },
-      { firstName: "David", lastName: "Rodriguez", email: "david.rodriguez@company.com", position: "Finance Manager", department: "Finance" },
-    ];
-
-    const departmentArray = Array.from(this.departments.values());
-
-    employeeData.forEach((emp, index) => {
-      const dept = departmentArray.find(d => d.name === emp.department);
-      const id = randomUUID();
-      this.employees.set(id, {
-        id,
-        userId: null,
-        employeeId: `EMP${String(index + 1).padStart(3, '0')}`,
-        firstName: emp.firstName,
-        lastName: emp.lastName,
-        email: emp.email,
-        phone: null,
-        departmentId: dept?.id || null,
-        position: emp.position,
-        managerId: null,
-        hireDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        status: index === 1 ? "on_leave" : "active",
-        salary: "75000.00",
-        profileImage: null,
-        address: null,
-        personalInfo: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    });
-
-    // Create sample shifts
-    const shiftData = [
-      {
-        name: "Day Shift",
-        startTime: "09:00",
-        endTime: "17:00",
-        breakDuration: 60,
-        standardHours: "8.0",
-        graceTime: 10,
-        isFlexible: false,
-        isRotating: false,
-        isNightShift: false
-      },
-      {
-        name: "Night Shift",
-        startTime: "22:00",
-        endTime: "06:00",
-        breakDuration: 60,
-        standardHours: "8.0",
-        graceTime: 10,
-        isFlexible: false,
-        isRotating: false,
-        isNightShift: true,
-        nightShiftAllowance: "500"
-      },
-      {
-        name: "Morning Shift",
-        startTime: "06:00",
-        endTime: "14:00",
-        breakDuration: 60,
-        standardHours: "8.0",
-        graceTime: 10,
-        isFlexible: false,
-        isRotating: false,
-        isNightShift: false
-      },
-    ];
-
-    shiftData.forEach((shift, index) => {
-      const id = randomUUID();
-      this.shifts.set(id, {
-        id,
-        name: shift.name,
-        startTime: shift.startTime,
-        endTime: shift.endTime,
-        breakDuration: shift.breakDuration,
-        standardHours: shift.standardHours,
-        graceTime: shift.graceTime,
-        lateArrivalPenalty: "0",
-        earlyDeparturePenalty: "0",
-        halfDayThreshold: "4.0",
-        isFlexible: shift.isFlexible,
-        isRotating: shift.isRotating,
-        isNightShift: shift.isNightShift,
-        nightShiftAllowance: shift.nightShiftAllowance || "0",
-        overtimeThreshold: "8.0",
-        maxOvertimePerDay: "4.0",
-        weeklyOffPattern: "saturday,sunday",
-        workingDaysPerWeek: 5,
-        holidayWorkingRate: "2.0",
-        createdAt: new Date(),
-      });
-    });
-
-    // Create sample attendance records
-    const employees = Array.from(this.employees.values());
-    const today = new Date();
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      date.setHours(0, 0, 0, 0); // Normalize date to start of day
-
-      employees.forEach(emp => {
-        if (Math.random() > 0.1) { // 90% attendance rate
-          const id = randomUUID();
-          const checkIn = new Date(date);
-          checkIn.setHours(9, Math.floor(Math.random() * 30));
-
-          const checkOut = new Date(checkIn);
-          checkOut.setHours(17, Math.floor(Math.random() * 60));
-
-          this.attendance.set(id, {
-            id,
-            employeeId: emp.id,
-            date: date.toISOString().split('T')[0], // Store date as ISO string
-            checkIn,
-            checkOut,
-            hoursWorked: "8.00",
-            status: "present",
-            notes: null,
-            createdAt: new Date(),
-            biometricId: `BIO${Math.floor(Math.random() * 1000)}`,
-            biometricDeviceIn: `DEV${String(Math.floor(Math.random() * 3) + 1)}`,
-            biometricDeviceOut: `DEV${String(Math.floor(Math.random() * 3) + 1)}`,
-            fingerprintVerified: true,
-            lateMinutes: Math.floor(Math.random() * 10),
-            earlyDepartureMinutes: Math.floor(Math.random() * 15),
-          });
-        }
-      });
-    }
-
-    // Create sample biometric devices including Metrix software integration
-    const biometricDeviceData = [
-      { deviceId: "BIO_DEV_001", deviceName: "Main Entrance Scanner", deviceType: "fingerprint", location: "Lobby", isActive: true },
-      { deviceId: "BIO_DEV_002", deviceName: "Floor 1 Scanner", deviceType: "fingerprint", location: "Engineering Floor", isActive: true },
-      { deviceId: "BIO_DEV_003", deviceName: "Warehouse Scanner", deviceType: "fingerprint", location: "Warehouse", isActive: false },
-      { deviceId: "METRIX_001", deviceName: "Metrix Software Integration", deviceType: "software", location: "Software System", isActive: true },
-      { deviceId: "METRIX_002", deviceName: "Metrix Backup System", deviceType: "software", location: "Software System", isActive: true },
-    ];
-
-    biometricDeviceData.forEach(device => {
-      const id = randomUUID();
-      this.biometricDevices.set(id, {
-        ...device,
-        id,
-        clientSiteId: null,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-    });
-
-
-    // Create sample activities
-    const activities = [
-      { type: "employee", title: "New employee onboarded", description: "Sarah Johnson joined Marketing" },
-      { type: "leave", title: "Leave request approved", description: "Mike Chen - Annual leave" },
-      { type: "performance", title: "Performance review due", description: "15 employees pending" },
-      { type: "payroll", title: "Payroll processing alert", description: "Monthly payroll due tomorrow" },
-    ];
-
-    activities.forEach((activity, index) => {
-      const id = randomUUID();
-      const createdAt = new Date();
-      createdAt.setHours(createdAt.getHours() - (index + 1) * 2);
-
-      this.activities.set(id, {
-        id,
-        type: activity.type,
-        title: activity.title,
-        description: activity.description,
-        entityType: null,
-        entityId: null,
-        userId: null,
-        createdAt,
-      });
-    });
-  }
-
+export class DatabaseStorage implements IStorage {
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(user => user.username === username);
+    const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return result[0];
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = {
-      ...insertUser,
-      id,
-      role: insertUser.role ?? "employee",
-      createdAt: new Date()
-    };
-    this.users.set(id, user);
-    return user;
+  async createUser(user: InsertUser): Promise<User> {
+    const result = await db.insert(users).values(user).returning();
+    return result[0];
   }
 
   // Departments
   async getDepartments(): Promise<Department[]> {
-    return Array.from(this.departments.values());
+    return await db.select().from(departments).orderBy(departments.name);
   }
 
   async getDepartment(id: string): Promise<Department | undefined> {
-    return this.departments.get(id);
+    const result = await db.select().from(departments).where(eq(departments.id, id)).limit(1);
+    return result[0];
   }
 
-  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
-    const id = randomUUID();
-    const department: Department = { ...insertDepartment, id, createdAt: new Date() };
-    this.departments.set(id, department);
-    return department;
+  async createDepartment(department: InsertDepartment): Promise<Department> {
+    const result = await db.insert(departments).values(department).returning();
+    return result[0];
   }
 
-  async updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined> {
-    const department = this.departments.get(id);
-    if (!department) return undefined;
-
-    const updated = { ...department, ...updates };
-    this.departments.set(id, updated);
-    return updated;
+  async updateDepartment(id: string, department: Partial<InsertDepartment>): Promise<Department | undefined> {
+    const result = await db.update(departments).set(department).where(eq(departments.id, id)).returning();
+    return result[0];
   }
 
   async deleteDepartment(id: string): Promise<boolean> {
-    return this.departments.delete(id);
+    const result = await db.delete(departments).where(eq(departments.id, id));
+    return (result as any).rowCount > 0;
   }
 
   // Employees
   async getEmployees(): Promise<EmployeeWithDepartment[]> {
-    const employees = Array.from(this.employees.values());
-    return employees.map(emp => ({
-      ...emp,
-      department: emp.departmentId ? this.departments.get(emp.departmentId) : undefined,
-      manager: emp.managerId ? this.employees.get(emp.managerId) : undefined,
-    }));
+    const result = await db.select({
+      id: employees.id,
+      userId: employees.userId,
+      employeeId: employees.employeeId,
+      firstName: employees.firstName,
+      middleName: employees.middleName,
+      lastName: employees.lastName,
+      email: employees.email,
+      personalEmail: employees.personalEmail,
+      phone: employees.phone,
+      personalPhone: employees.personalPhone,
+      dateOfBirth: employees.dateOfBirth,
+      gender: employees.gender,
+      maritalStatus: employees.maritalStatus,
+      profileImage: employees.profileImage,
+      currentAddress: employees.currentAddress,
+      permanentAddress: employees.permanentAddress,
+      emergencyContact: employees.emergencyContact,
+      departmentId: employees.departmentId,
+      position: employees.position,
+      managerId: employees.managerId,
+      employmentType: employees.employmentType,
+      workLocation: employees.workLocation,
+      employeeGrade: employees.employeeGrade,
+      hireDate: employees.hireDate,
+      probationEndDate: employees.probationEndDate,
+      confirmationDate: employees.confirmationDate,
+      status: employees.status,
+      shiftId: employees.shiftId,
+      baseSalary: employees.baseSalary,
+      hra: employees.hra,
+      conveyanceAllowance: employees.conveyanceAllowance,
+      medicalAllowance: employees.medicalAllowance,
+      specialAllowance: employees.specialAllowance,
+      dearnessAllowance: employees.dearnessAllowance,
+      overtimeEligible: employees.overtimeEligible,
+      overtimeCategory: employees.overtimeCategory,
+      maxOvertimeHours: employees.maxOvertimeHours,
+      overtimeRate: employees.overtimeRate,
+      holidayOvertimeRate: employees.holidayOvertimeRate,
+      nightShiftOvertimeRate: employees.nightShiftOvertimeRate,
+      education: employees.education,
+      skills: employees.skills,
+      experience: employees.experience,
+      languages: employees.languages,
+      panNumber: employees.panNumber,
+      aadharNumber: employees.aadharNumber,
+      passportNumber: employees.passportNumber,
+      pfAccountNumber: employees.pfAccountNumber,
+      esiNumber: employees.esiNumber,
+      uanNumber: employees.uanNumber,
+      previousPfDetails: employees.previousPfDetails,
+      bankDetails: employees.bankDetails,
+      medicalFitnessCertificate: employees.medicalFitnessCertificate,
+      safetyTrainingCompleted: employees.safetyTrainingCompleted,
+      safetyEquipmentSizes: employees.safetyEquipmentSizes,
+      specialLicenses: employees.specialLicenses,
+      policeVerification: employees.policeVerification,
+      fieldWorkEligible: employees.fieldWorkEligible,
+      clientSiteAccess: employees.clientSiteAccess,
+      travelAllowance: employees.travelAllowance,
+      fieldAllowance: employees.fieldAllowance,
+      createdAt: employees.createdAt,
+      updatedAt: employees.updatedAt,
+      department: departments
+    })
+    .from(employees)
+    .leftJoin(departments, eq(employees.departmentId, departments.id))
+    .orderBy(employees.firstName, employees.lastName);
+
+    return result.map(r => ({ ...r, department: r.department || undefined }));
   }
 
   async getEmployee(id: string): Promise<EmployeeWithDepartment | undefined> {
-    const employee = this.employees.get(id);
-    if (!employee) return undefined;
+    const result = await db.select({
+      id: employees.id,
+      userId: employees.userId,
+      employeeId: employees.employeeId,
+      firstName: employees.firstName,
+      middleName: employees.middleName,
+      lastName: employees.lastName,
+      email: employees.email,
+      personalEmail: employees.personalEmail,
+      phone: employees.phone,
+      personalPhone: employees.personalPhone,
+      dateOfBirth: employees.dateOfBirth,
+      gender: employees.gender,
+      maritalStatus: employees.maritalStatus,
+      profileImage: employees.profileImage,
+      currentAddress: employees.currentAddress,
+      permanentAddress: employees.permanentAddress,
+      emergencyContact: employees.emergencyContact,
+      departmentId: employees.departmentId,
+      position: employees.position,
+      managerId: employees.managerId,
+      employmentType: employees.employmentType,
+      workLocation: employees.workLocation,
+      employeeGrade: employees.employeeGrade,
+      hireDate: employees.hireDate,
+      probationEndDate: employees.probationEndDate,
+      confirmationDate: employees.confirmationDate,
+      status: employees.status,
+      shiftId: employees.shiftId,
+      baseSalary: employees.baseSalary,
+      hra: employees.hra,
+      conveyanceAllowance: employees.conveyanceAllowance,
+      medicalAllowance: employees.medicalAllowance,
+      specialAllowance: employees.specialAllowance,
+      dearnessAllowance: employees.dearnessAllowance,
+      overtimeEligible: employees.overtimeEligible,
+      overtimeCategory: employees.overtimeCategory,
+      maxOvertimeHours: employees.maxOvertimeHours,
+      overtimeRate: employees.overtimeRate,
+      holidayOvertimeRate: employees.holidayOvertimeRate,
+      nightShiftOvertimeRate: employees.nightShiftOvertimeRate,
+      education: employees.education,
+      skills: employees.skills,
+      experience: employees.experience,
+      languages: employees.languages,
+      panNumber: employees.panNumber,
+      aadharNumber: employees.aadharNumber,
+      passportNumber: employees.passportNumber,
+      pfAccountNumber: employees.pfAccountNumber,
+      esiNumber: employees.esiNumber,
+      uanNumber: employees.uanNumber,
+      previousPfDetails: employees.previousPfDetails,
+      bankDetails: employees.bankDetails,
+      medicalFitnessCertificate: employees.medicalFitnessCertificate,
+      safetyTrainingCompleted: employees.safetyTrainingCompleted,
+      safetyEquipmentSizes: employees.safetyEquipmentSizes,
+      specialLicenses: employees.specialLicenses,
+      policeVerification: employees.policeVerification,
+      fieldWorkEligible: employees.fieldWorkEligible,
+      clientSiteAccess: employees.clientSiteAccess,
+      travelAllowance: employees.travelAllowance,
+      fieldAllowance: employees.fieldAllowance,
+      createdAt: employees.createdAt,
+      updatedAt: employees.updatedAt,
+      department: departments
+    })
+    .from(employees)
+    .leftJoin(departments, eq(employees.departmentId, departments.id))
+    .where(eq(employees.id, id))
+    .limit(1);
 
-    return {
-      ...employee,
-      department: employee.departmentId ? this.departments.get(employee.departmentId) : undefined,
-      manager: employee.managerId ? this.employees.get(employee.managerId) : undefined,
-    };
+    return result[0] ? { ...result[0], department: result[0].department || undefined } : undefined;
   }
 
   async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
-    return Array.from(this.employees.values()).find(emp => emp.email === email);
+    const result = await db.select().from(employees).where(eq(employees.email, email)).limit(1);
+    return result[0];
   }
 
-  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
-    const id = randomUUID();
-    const employee: Employee = {
-      ...insertEmployee,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-    this.employees.set(id, employee);
-    return employee;
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const result = await db.insert(employees).values(employee).returning();
+    return result[0];
   }
 
-  async updateEmployee(id: string, updates: Partial<InsertEmployee>): Promise<Employee | undefined> {
-    const employee = this.employees.get(id);
-    if (!employee) return undefined;
-
-    const updated = { ...employee, ...updates, updatedAt: new Date() };
-    this.employees.set(id, updated);
-    return updated;
+  async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
+    const result = await db.update(employees).set(employee).where(eq(employees.id, id)).returning();
+    return result[0];
   }
 
   async deleteEmployee(id: string): Promise<boolean> {
-    return this.employees.delete(id);
+    const result = await db.delete(employees).where(eq(employees.id, id));
+    return (result as any).rowCount > 0;
   }
 
   // Shifts
   async getShifts(): Promise<Shift[]> {
-    return Array.from(this.shifts.values());
+    return await db.select().from(shifts).orderBy(shifts.name);
   }
 
   async getShift(id: string): Promise<Shift | undefined> {
-    return this.shifts.get(id);
+    const result = await db.select().from(shifts).where(eq(shifts.id, id)).limit(1);
+    return result[0];
   }
 
-  async createShift(insertShift: InsertShift): Promise<Shift> {
-    const id = randomUUID();
-    const shift: Shift = {
-      ...insertShift,
-      id,
-      createdAt: new Date()
-    };
-    this.shifts.set(id, shift);
-    return shift;
+  async createShift(shift: InsertShift): Promise<Shift> {
+    const result = await db.insert(shifts).values(shift).returning();
+    return result[0];
   }
 
-  async updateShift(id: string, updates: Partial<InsertShift>): Promise<Shift | undefined> {
-    const shift = this.shifts.get(id);
-    if (!shift) return undefined;
-
-    const updated = { ...shift, ...updates };
-    this.shifts.set(id, updated);
-    return updated;
+  async updateShift(id: string, shift: Partial<InsertShift>): Promise<Shift | undefined> {
+    const result = await db.update(shifts).set(shift).where(eq(shifts.id, id)).returning();
+    return result[0];
   }
 
   async deleteShift(id: string): Promise<boolean> {
-    return this.shifts.delete(id);
+    const result = await db.delete(shifts).where(eq(shifts.id, id));
+    return (result as any).rowCount > 0;
   }
 
   // Attendance
   async getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]> {
-    let attendance = Array.from(this.attendance.values());
-
-    if (filters?.employeeId) {
-      attendance = attendance.filter(a => a.employeeId === filters.employeeId);
+    let query = db.select().from(attendance);
+    
+    if (filters?.employeeId || filters?.startDate || filters?.endDate) {
+      const conditions = [];
+      if (filters.employeeId) conditions.push(eq(attendance.employeeId, filters.employeeId));
+      if (filters.startDate) conditions.push(sql`${attendance.date} >= ${filters.startDate}`);
+      if (filters.endDate) conditions.push(sql`${attendance.date} <= ${filters.endDate}`);
+      query = query.where(and(...conditions));
     }
-
-    if (filters?.startDate) {
-      // Ensure comparison is done on normalized dates
-      const startDateNormalized = filters.startDate.toISOString().split('T')[0];
-      attendance = attendance.filter(a => a.date >= startDateNormalized);
-    }
-
-    if (filters?.endDate) {
-      // Ensure comparison is done on normalized dates
-      const endDateNormalized = filters.endDate.toISOString().split('T')[0];
-      attendance = attendance.filter(a => a.date <= endDateNormalized);
-    }
-
-    return attendance.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return await query.orderBy(desc(attendance.date));
   }
 
-  async createAttendance(insertAttendance: InsertAttendance): Promise<Attendance> {
-    const id = randomUUID();
-    const attendance: Attendance = {
-      ...insertAttendance,
-      id,
-      status: insertAttendance.status ?? "present",
-      createdAt: new Date(),
-      date: insertAttendance.date || new Date().toISOString().split('T')[0], // Ensure date is set
-    };
-    this.attendance.set(id, attendance);
-    return attendance;
-  }
-
-  // Get single attendance record by ID
   async getAttendanceById(id: string): Promise<Attendance | undefined> {
-    return this.attendance.get(id);
+    const result = await db.select().from(attendance).where(eq(attendance.id, id)).limit(1);
+    return result[0];
   }
 
-  async updateAttendance(id: string, updates: Partial<InsertAttendance>): Promise<Attendance | undefined> {
-    const attendance = this.attendance.get(id);
-    if (!attendance) return undefined;
-
-    const updated = { ...attendance, ...updates };
-    this.attendance.set(id, updated);
-    return updated;
+  async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
+    const result = await db.insert(attendance).values(attendanceData).returning();
+    return result[0];
   }
 
-  // Delete attendance record
+  async updateAttendance(id: string, attendanceData: Partial<InsertAttendance>): Promise<Attendance | undefined> {
+    const result = await db.update(attendance).set(attendanceData).where(eq(attendance.id, id)).returning();
+    return result[0];
+  }
+
   async deleteAttendance(id: string): Promise<boolean> {
-    return this.attendance.delete(id);
+    const result = await db.delete(attendance).where(eq(attendance.id, id));
+    return (result as any).rowCount > 0;
   }
 
   // Leaves
   async getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]> {
-    let leaves = Array.from(this.leaves.values());
-
-    if (filters?.employeeId) {
-      leaves = leaves.filter(l => l.employeeId === filters.employeeId);
+    let query = db.select().from(leaves);
+    
+    if (filters?.employeeId || filters?.status) {
+      const conditions = [];
+      if (filters.employeeId) conditions.push(eq(leaves.employeeId, filters.employeeId));
+      if (filters.status) conditions.push(eq(leaves.status, filters.status));
+      query = query.where(and(...conditions));
     }
-
-    if (filters?.status) {
-      leaves = leaves.filter(l => l.status === filters.status);
-    }
-
-    return leaves.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    return await query.orderBy(desc(leaves.createdAt));
   }
 
-  async createLeave(insertLeave: InsertLeave): Promise<Leave> {
-    const id = randomUUID();
-    const leave: Leave = {
-      ...insertLeave,
-      id,
-      status: insertLeave.status ?? "pending",
-      createdAt: new Date(),
-      approvedAt: null
-    };
-    this.leaves.set(id, leave);
-    return leave;
+  async createLeave(leave: InsertLeave): Promise<Leave> {
+    const result = await db.insert(leaves).values(leave).returning();
+    return result[0];
   }
 
-  async updateLeave(id: string, updates: Partial<InsertLeave>): Promise<Leave | undefined> {
-    const leave = this.leaves.get(id);
-    if (!leave) return undefined;
-
-    const updated = { ...leave, ...updates };
-    if (updates.status === "approved" && !updated.approvedAt) {
-      updated.approvedAt = new Date();
-    }
-    this.leaves.set(id, updated);
-    return updated;
+  async updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined> {
+    const result = await db.update(leaves).set(leave).where(eq(leaves.id, id)).returning();
+    return result[0];
   }
 
   // Payroll
   async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> {
-    let payroll = Array.from(this.payroll.values());
-
-    if (filters?.employeeId) {
-      payroll = payroll.filter(p => p.employeeId === filters.employeeId);
+    let query = db.select().from(payroll);
+    
+    if (filters?.employeeId || filters?.month || filters?.year) {
+      const conditions = [];
+      if (filters.employeeId) conditions.push(eq(payroll.employeeId, filters.employeeId));
+      if (filters.month) conditions.push(eq(payroll.month, filters.month));
+      if (filters.year) conditions.push(eq(payroll.year, filters.year));
+      query = query.where(and(...conditions));
     }
-
-    if (filters?.month) {
-      payroll = payroll.filter(p => p.month === filters.month);
-    }
-
-    if (filters?.year) {
-      payroll = payroll.filter(p => p.year === filters.year);
-    }
-
-    return payroll.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    return await query.orderBy(desc(payroll.year), desc(payroll.month));
   }
 
-  async createPayroll(insertPayroll: InsertPayroll): Promise<Payroll> {
-    const id = randomUUID();
-    const payroll: Payroll = {
-      ...insertPayroll,
-      id,
-      status: insertPayroll.status ?? "pending",
-      createdAt: new Date(),
-      processedAt: null
-    };
-    this.payroll.set(id, payroll);
-    return payroll;
+  async createPayroll(payrollData: InsertPayroll): Promise<Payroll> {
+    const result = await db.insert(payroll).values(payrollData).returning();
+    return result[0];
   }
 
-  async updatePayroll(id: string, updates: Partial<InsertPayroll>): Promise<Payroll | undefined> {
-    const payroll = this.payroll.get(id);
-    if (!payroll) return undefined;
-
-    const updated = { ...payroll, ...updates };
-    if (updates.status === "processed" && !updated.processedAt) {
-      updated.processedAt = new Date();
-    }
-    this.payroll.set(id, updated);
-    return updated;
+  async updatePayroll(id: string, payrollData: Partial<InsertPayroll>): Promise<Payroll | undefined> {
+    const result = await db.update(payroll).set(payrollData).where(eq(payroll.id, id)).returning();
+    return result[0];
   }
 
   // Performance
   async getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]> {
-    let performance = Array.from(this.performance.values());
-
-    if (filters?.employeeId) {
-      performance = performance.filter(p => p.employeeId === filters.employeeId);
+    let query = db.select().from(performance);
+    
+    if (filters?.employeeId || filters?.year) {
+      const conditions = [];
+      if (filters.employeeId) conditions.push(eq(performance.employeeId, filters.employeeId));
+      if (filters.year) conditions.push(eq(performance.year, filters.year));
+      query = query.where(and(...conditions));
     }
-
-    if (filters?.year) {
-      performance = performance.filter(p => p.year === filters.year);
-    }
-
-    return performance.sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+    
+    return await query.orderBy(desc(performance.year));
   }
 
-  async createPerformance(insertPerformance: InsertPerformance): Promise<Performance> {
-    const id = randomUUID();
-    const performance: Performance = {
-      ...insertPerformance,
-      id,
-      status: insertPerformance.status ?? "pending",
-      createdAt: new Date(),
-      completedAt: null
-    };
-    this.performance.set(id, performance);
-    return performance;
+  async createPerformance(performanceData: InsertPerformance): Promise<Performance> {
+    const result = await db.insert(performance).values(performanceData).returning();
+    return result[0];
   }
 
-  async updatePerformance(id: string, updates: Partial<InsertPerformance>): Promise<Performance | undefined> {
-    const performance = this.performance.get(id);
-    if (!performance) return undefined;
+  async updatePerformance(id: string, performanceData: Partial<InsertPerformance>): Promise<Performance | undefined> {
+    const result = await db.update(performance).set(performanceData).where(eq(performance.id, id)).returning();
+    return result[0];
+  }
 
-    const updated = { ...performance, ...updates };
-    if (updates.status === "completed" && !updated.completedAt) {
-      updated.completedAt = new Date();
+  async deletePerformance(id: string): Promise<boolean> {
+    const result = await db.delete(performance).where(eq(performance.id, id));
+    return (result as any).rowCount > 0;
+  }
+
+  // Job Openings
+  async getJobOpenings(): Promise<JobOpening[]> {
+    return await db.select().from(jobOpenings).orderBy(desc(jobOpenings.createdAt));
+  }
+
+  async getJobOpening(id: string): Promise<JobOpening | undefined> {
+    const result = await db.select().from(jobOpenings).where(eq(jobOpenings.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createJobOpening(jobOpening: InsertJobOpening): Promise<JobOpening> {
+    const result = await db.insert(jobOpenings).values(jobOpening).returning();
+    return result[0];
+  }
+
+  async updateJobOpening(id: string, jobOpening: Partial<InsertJobOpening>): Promise<JobOpening | undefined> {
+    const result = await db.update(jobOpenings).set(jobOpening).where(eq(jobOpenings.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteJobOpening(id: string): Promise<boolean> {
+    const result = await db.delete(jobOpenings).where(eq(jobOpenings.id, id));
+    return (result as any).rowCount > 0;
+  }
+
+  // Job Applications
+  async getJobApplications(jobId?: string): Promise<JobApplication[]> {
+    let query = db.select().from(jobApplications);
+    
+    if (jobId) {
+      query = query.where(eq(jobApplications.jobId, jobId));
     }
-    this.performance.set(id, updated);
-    return updated;
+    
+    return await query.orderBy(desc(jobApplications.appliedAt));
+  }
+
+  async getJobApplication(id: string): Promise<JobApplication | undefined> {
+    const result = await db.select().from(jobApplications).where(eq(jobApplications.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createJobApplication(application: InsertJobApplication): Promise<JobApplication> {
+    const result = await db.insert(jobApplications).values(application).returning();
+    return result[0];
+  }
+
+  async updateJobApplication(id: string, application: Partial<InsertJobApplication>): Promise<JobApplication | undefined> {
+    const result = await db.update(jobApplications).set(application).where(eq(jobApplications.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteJobApplication(id: string): Promise<boolean> {
+    const result = await db.delete(jobApplications).where(eq(jobApplications.id, id));
+    return (result as any).rowCount > 0;
   }
 
   // Activities
-  async getActivities(limit = 10): Promise<Activity[]> {
-    const activities = Array.from(this.activities.values());
-    return activities
-      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0))
-      .slice(0, limit);
+  async getActivities(limit: number = 50): Promise<Activity[]> {
+    return await db.select().from(activities).orderBy(desc(activities.createdAt)).limit(limit);
   }
 
-  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const id = randomUUID();
-    const activity: Activity = {
-      ...insertActivity,
-      id,
-      description: insertActivity.description ?? null,
-      createdAt: new Date()
-    };
-    this.activities.set(id, activity);
-    return activity;
-  }
-
-  // Biometric Devices
-  async getBiometricDevices(): Promise<BiometricDevice[]> {
-    return Array.from(this.biometricDevices.values());
-  }
-
-  async getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined> {
-    return Array.from(this.biometricDevices.values()).find(device => device.deviceId === deviceId);
-  }
-
-  async createBiometricDevice(deviceData: Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice> {
-    const id = randomUUID();
-    const device: BiometricDevice = {
-      ...deviceData,
-      id,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    this.biometricDevices.set(id, device);
-    return device;
-  }
-
-  async updateBiometricDevice(deviceId: string, updates: Partial<Omit<Insert<BiometricDevice>, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined> {
-    const device = Array.from(this.biometricDevices.values()).find(d => d.deviceId === deviceId);
-    if (!device) return undefined;
-
-    const updatedDevice = {
-      ...device,
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    this.biometricDevices.set(device.id, updatedDevice); // Use the internal ID to update
-    return updatedDevice;
-  }
-
-  async deleteBiometricDevice(deviceId: string): Promise<boolean> {
-    const deviceToRemove = Array.from(this.biometricDevices.values()).find(d => d.deviceId === deviceId);
-    if (deviceToRemove) {
-      return this.biometricDevices.delete(deviceToRemove.id);
-    }
-    return false;
-  }
-
-  // Process Biometric Punches
-  async processBiometricPunch(punchData: {
-    deviceId: string;
-    employeeId: string;
-    biometricId: string; // The ID from the biometric machine
-    punchTime: Date;
-    punchType: 'IN' | 'OUT'; // 'IN' for check-in, 'OUT' for check-out
-    location?: string;
-    clientSiteId?: string;
-  }): Promise<Attendance | undefined> {
-    const { deviceId, employeeId, biometricId, punchTime, punchType, location, clientSiteId } = punchData;
-    const attendanceDate = punchTime.toISOString().split('T')[0];
-
-    // Find existing attendance for the day
-    let attendanceRecord = Array.from(this.attendance.values()).find(att =>
-      att.employeeId === employeeId &&
-      att.date === attendanceDate
-    );
-
-    if (!attendanceRecord) {
-      // If no record exists for the day, create one
-      attendanceRecord = await this.createAttendance({
-        employeeId,
-        date: attendanceDate,
-        biometricId,
-        biometricDeviceIn: punchType === 'IN' ? deviceId : undefined,
-        biometricDeviceOut: punchType === 'OUT' ? deviceId : undefined,
-        location: location || null,
-        clientSiteId: clientSiteId || null,
-        status: 'present', // Default status
-        checkIn: punchType === 'IN' ? punchTime : undefined,
-        checkOut: punchType === 'OUT' ? punchTime : undefined,
-        fingerprintVerified: true,
-      });
-    } else {
-      // If record exists, update it
-      const updates: Partial<InsertAttendance> = {};
-      if (punchType === 'IN') {
-        // Only update check-in if it's not already set or if this punch is earlier (e.g., shift change)
-        if (!attendanceRecord.checkIn || punchTime < attendanceRecord.checkIn) {
-          updates.checkIn = punchTime;
-          updates.biometricDeviceIn = deviceId;
-          updates.fingerprintVerified = true;
-        }
-      } else if (punchType === 'OUT') {
-        // Only update check-out if it's not already set or if this punch is later
-        if (!attendanceRecord.checkOut || punchTime > attendanceRecord.checkOut) {
-          updates.checkOut = punchTime;
-          updates.biometricDeviceOut = deviceId;
-        }
-      }
-
-      // Calculate hours worked if both check-in and check-out are available
-      if (updates.checkIn || attendanceRecord.checkIn) {
-        const effectiveCheckIn = updates.checkIn || attendanceRecord.checkIn;
-        const effectiveCheckOut = updates.checkOut || attendanceRecord.checkOut;
-
-        if (effectiveCheckIn && effectiveCheckOut) {
-          const checkInTime = new Date(effectiveCheckIn);
-          const checkOutTime = new Date(effectiveCheckOut);
-          const hoursWorkedMs = checkOutTime.getTime() - checkInTime.getTime();
-          const hoursWorked = hoursWorkedMs / (1000 * 60 * 60);
-
-          updates.hoursWorked = hoursWorked.toFixed(2);
-          // Assuming standard 8-hour workday for overtime calculation
-          updates.overtimeHours = Math.max(0, hoursWorked - 8).toFixed(2);
-
-          // Update lateMinutes and earlyDepartureMinutes if not already set or if this punch provides more accurate data
-          const standardShiftStart = new Date(attendanceDate + "T09:00:00"); // Assuming 9 AM start
-          const standardShiftEnd = new Date(attendanceDate + "T17:00:00"); // Assuming 5 PM end
-
-          if (effectiveCheckIn > standardShiftStart) {
-            const lateMinutes = Math.floor((effectiveCheckIn.getTime() - standardShiftStart.getTime()) / (1000 * 60));
-            if (updates.lateMinutes === undefined || lateMinutes < updates.lateMinutes) {
-              updates.lateMinutes = lateMinutes;
-            }
-          }
-          if (effectiveCheckOut < standardShiftEnd) {
-            const earlyDepartureMinutes = Math.floor((standardShiftEnd.getTime() - effectiveCheckOut.getTime()) / (1000 * 60));
-            if (updates.earlyDepartureMinutes === undefined || earlyDepartureMinutes < updates.earlyDepartureMinutes) {
-              updates.earlyDepartureMinutes = earlyDepartureMinutes;
-            }
-          }
-        }
-      }
-
-      // If there are any updates to apply, call updateAttendance
-      if (Object.keys(updates).length > 0) {
-        return await this.updateAttendance(attendanceRecord.id, updates);
-      } else {
-        return attendanceRecord; // No changes needed, return the existing record
-      }
-    }
-    return attendanceRecord; // Return the newly created record if applicable
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const result = await db.insert(activities).values(activity).returning();
+    return result[0];
   }
 
   // Analytics
-  async getDashboardMetrics() {
-    const employees = Array.from(this.employees.values());
-    const attendance = Array.from(this.attendance.values());
-    const leaves = Array.from(this.leaves.values());
-    const departments = Array.from(this.departments.values());
+  async getDashboardMetrics(): Promise<{
+    totalEmployees: number;
+    activeToday: number;
+    pendingLeaves: number;
+    openPositions: number;
+    attendanceRate: number;
+    departmentDistribution: { name: string; count: number }[];
+    attendanceTrend: { date: string; rate: number }[];
+  }> {
+    // Get total employees count
+    const totalEmployeesResult = await db.select({ count: sql<number>`count(*)` }).from(employees);
+    const totalEmployees = totalEmployeesResult[0]?.count || 0;
 
-    const totalEmployees = employees.length;
-    const activeEmployees = employees.filter(e => e.status === "active");
-
-    // Calculate today's attendance
+    // Get active today (employees who checked in today)
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0);
+    const activeTodayResult = await db.select({ count: sql<number>`count(distinct ${attendance.employeeId})` })
+      .from(attendance)
+      .where(sql`date >= ${today}`);
+    const activeToday = activeTodayResult[0]?.count || 0;
 
-    const todayAttendanceRecords = attendance.filter(a => a.date === todayString);
+    // Get pending leaves count
+    const pendingLeavesResult = await db.select({ count: sql<number>`count(*)` })
+      .from(leaves)
+      .where(eq(leaves.status, 'pending'));
+    const pendingLeaves = pendingLeavesResult[0]?.count || 0;
 
-    const activeToday = todayAttendanceRecords.length;
-    const pendingLeaves = leaves.filter(l => l.status === "pending").length;
+    // Get open positions count
+    const openPositionsResult = await db.select({ count: sql<number>`count(*)` })
+      .from(jobOpenings)
+      .where(eq(jobOpenings.status, 'open'));
+    const openPositions = openPositionsResult[0]?.count || 0;
 
-    // Department distribution
-    const departmentDistribution = departments.map(dept => ({
-      name: dept.name,
-      count: employees.filter(emp => emp.departmentId === dept.id).length
+    // Calculate attendance rate (simplified - present employees today / total employees)
+    const attendanceRate = totalEmployees > 0 ? (activeToday / totalEmployees) * 100 : 0;
+
+    // Get department distribution
+    const departmentDistributionResult = await db.select({
+      name: departments.name,
+      count: sql<number>`count(${employees.id})`
+    })
+    .from(departments)
+    .leftJoin(employees, eq(departments.id, employees.departmentId))
+    .groupBy(departments.id, departments.name);
+
+    const departmentDistribution = departmentDistributionResult.map(d => ({
+      name: d.name,
+      count: d.count || 0
     }));
 
-    // Attendance trend for last 7 days
-    const attendanceTrend = [];
+    // Simplified attendance trend (last 7 days)
+    const attendanceTrend: { date: string; rate: number }[] = [];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
+      const date = new Date();
       date.setDate(date.getDate() - i);
-      const trendDateString = date.toISOString().split('T')[0];
-
-      const dayAttendance = attendance.filter(a => a.date === trendDateString);
-
-      const rate = activeEmployees.length > 0 ? (dayAttendance.length / activeEmployees.length) * 100 : 0;
+      date.setHours(0, 0, 0, 0);
+      
+      const dayAttendanceResult = await db.select({ count: sql<number>`count(distinct ${attendance.employeeId})` })
+        .from(attendance)
+        .where(sql`date >= ${date} AND date < ${new Date(date.getTime() + 24 * 60 * 60 * 1000)}`);
+      
+      const dayActiveCount = dayAttendanceResult[0]?.count || 0;
+      const dayRate = totalEmployees > 0 ? (dayActiveCount / totalEmployees) * 100 : 0;
+      
       attendanceTrend.push({
-        date: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        rate: Math.round(rate)
+        date: date.toISOString().split('T')[0],
+        rate: dayRate
       });
     }
-
-    const attendanceRate = activeEmployees.length > 0 ? (activeToday / activeEmployees.length) * 100 : 0;
-
-    const openPositions = Array.from(this.jobOpenings.values()).filter(j => j.status === 'active').length;
 
     return {
       totalEmployees,
       activeToday,
       pendingLeaves,
       openPositions,
-      attendanceRate: Math.round(attendanceRate * 10) / 10,
+      attendanceRate,
       departmentDistribution,
-      attendanceTrend,
+      attendanceTrend
     };
-  }
-
-  // Performance delete method
-  async deletePerformance(id: string): Promise<boolean> {
-    return this.performance.delete(id);
-  }
-
-  // Job Opening methods
-  async getJobOpenings(): Promise<JobOpening[]> {
-    return Array.from(this.jobOpenings.values())
-      .sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
-  }
-
-  async getJobOpening(id: string): Promise<JobOpening | undefined> {
-    return this.jobOpenings.get(id);
-  }
-
-  async createJobOpening(insertJobOpening: InsertJobOpening): Promise<JobOpening> {
-    const id = randomUUID();
-    const jobOpening: JobOpening = {
-      ...insertJobOpening,
-      id,
-      applicantCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      postedBy: null, // Ensure this field is set
-    };
-    this.jobOpenings.set(id, jobOpening);
-    return jobOpening;
-  }
-
-  async updateJobOpening(id: string, updates: Partial<InsertJobOpening>): Promise<JobOpening | undefined> {
-    const jobOpening = this.jobOpenings.get(id);
-    if (!jobOpening) return undefined;
-
-    const updated = {
-      ...jobOpening,
-      ...updates,
-      updatedAt: new Date()
-    };
-    this.jobOpenings.set(id, updated);
-    return updated;
-  }
-
-  async deleteJobOpening(id: string): Promise<boolean> {
-    // Also delete related applications
-    const applications = Array.from(this.jobApplications.values())
-      .filter(app => app.jobId === id);
-    applications.forEach(app => this.jobApplications.delete(app.id));
-
-    return this.jobOpenings.delete(id);
-  }
-
-  // Job Application methods
-  async getJobApplications(jobId?: string): Promise<JobApplication[]> {
-    let applications = Array.from(this.jobApplications.values());
-
-    if (jobId) {
-      applications = applications.filter(app => app.jobId === jobId);
-    }
-
-    return applications.sort((a, b) => (b.appliedAt?.getTime() || 0) - (a.appliedAt?.getTime() || 0));
-  }
-
-  async getJobApplication(id: string): Promise<JobApplication | undefined> {
-    return this.jobApplications.get(id);
-  }
-
-  async createJobApplication(insertApplication: InsertJobApplication): Promise<JobApplication> {
-    const id = randomUUID();
-    const application: JobApplication = {
-      ...insertApplication,
-      id,
-      appliedAt: new Date(),
-      reviewedAt: null
-    };
-    this.jobApplications.set(id, application);
-
-    // Update job opening applicant count
-    const jobOpening = this.jobOpenings.get(insertApplication.jobId);
-    if (jobOpening) {
-      jobOpening.applicantCount = (jobOpening.applicantCount || 0) + 1;
-      this.jobOpenings.set(jobOpening.id, jobOpening);
-    }
-
-    return application;
-  }
-
-  async updateJobApplication(id: string, updates: Partial<InsertJobApplication>): Promise<JobApplication | undefined> {
-    const application = this.jobApplications.get(id);
-    if (!application) return undefined;
-
-    const updated = {
-      ...application,
-      ...updates,
-      reviewedAt: updates.status && updates.status !== 'pending' ? new Date() : application.reviewedAt
-    };
-    this.jobApplications.set(id, updated);
-    return updated;
-  }
-
-  async deleteJobApplication(id: string): Promise<boolean> {
-    const application = this.jobApplications.get(id);
-    if (application) {
-      // Update job opening applicant count
-      const jobOpening = this.jobOpenings.get(application.jobId);
-      if (jobOpening && jobOpening.applicantCount && jobOpening.applicantCount > 0) {
-        jobOpening.applicantCount = jobOpening.applicantCount - 1;
-        this.jobOpenings.set(jobOpening.id, jobOpening);
-      }
-    }
-
-    return this.jobApplications.delete(id);
-  }
-
-  // Client Sites
-  async getClientSites(): Promise<ClientSite[]> {
-    return Array.from(this.clientSites.values());
-  }
-
-  async createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite> {
-    const id = randomUUID();
-    const site: ClientSite = {
-      ...siteData,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.clientSites.set(id, site);
-    return site;
-  }
-
-  // Overtime Requests
-  async getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]> {
-    let requests = Array.from(this.overtimeRequests.values());
-    
-    if (filters?.employeeId) {
-      requests = requests.filter(req => req.employeeId === filters.employeeId);
-    }
-    
-    if (filters?.status) {
-      requests = requests.filter(req => req.status === filters.status);
-    }
-    
-    return requests.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  }
-
-  async createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest> {
-    const id = randomUUID();
-    const overtimeRequest: OvertimeRequest = {
-      ...request,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.overtimeRequests.set(id, overtimeRequest);
-    return overtimeRequest;
-  }
-
-  async updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined> {
-    const request = this.overtimeRequests.get(id);
-    if (!request) return undefined;
-
-    const updated = {
-      ...request,
-      ...updates,
-      updatedAt: new Date(),
-    };
-    this.overtimeRequests.set(id, updated);
-    return updated;
   }
 }
 
-export class DatabaseStorage implements IStorage {
-  // Users
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
-  }
-
-  // Departments
-  async getDepartments(): Promise<Department[]> {
-    return await db.select().from(departments);
-  }
-
-  async getDepartment(id: string): Promise<Department | undefined> {
-    const [department] = await db.select().from(departments).where(eq(departments.id, id));
-    return department || undefined;
-  }
-
-  async createDepartment(insertDepartment: InsertDepartment): Promise<Department> {
-    const [department] = await db
-      .insert(departments)
-      .values(insertDepartment)
-      .returning();
-    return department;
-  }
-
-  async updateDepartment(id: string, updates: Partial<InsertDepartment>): Promise<Department | undefined> {
-    const [updated] = await db
-      .update(departments)
-      .set(updates)
-      .where(eq(departments.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteDepartment(id: string): Promise<boolean> {
-    const result = await db.delete(departments).where(eq(departments.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Employees
-  async getEmployees(): Promise<EmployeeWithDepartment[]> {
-    const result = await db
-      .select({
-        employee: employees,
-        department: departments
-      })
-      .from(employees)
-      .leftJoin(departments, eq(employees.departmentId, departments.id));
-
-    return result.map(row => ({
-      ...row.employee,
-      department: row.department || undefined,
-      manager: undefined // TODO: Add manager join if needed
-    }));
-  }
-
-  async getEmployee(id: string): Promise<EmployeeWithDepartment | undefined> {
-    const [result] = await db
-      .select({
-        employee: employees,
-        department: departments
-      })
-      .from(employees)
-      .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .where(eq(employees.id, id));
-
-    if (!result) return undefined;
-
-    return {
-      ...result.employee,
-      department: result.department || undefined,
-      manager: undefined // TODO: Add manager join if needed
-    };
-  }
-
-  async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
-    const [employee] = await db.select().from(employees).where(eq(employees.email, email));
-    return employee || undefined;
-  }
-
-  async createEmployee(insertEmployee: InsertEmployee): Promise<Employee> {
-    const [employee] = await db
-      .insert(employees)
-      .values(insertEmployee)
-      .returning();
-    return employee;
-  }
-
-  async updateEmployee(id: string, updates: Partial<InsertEmployee>): Promise<Employee | undefined> {
-    const [updated] = await db
-      .update(employees)
-      .set(updates)
-      .where(eq(employees.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteEmployee(id: string): Promise<boolean> {
-    const result = await db.delete(employees).where(eq(employees.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Leaves - The critical part for the user's issue
-  async getLeaves(filters?: { employeeId?: string; status?: string }): Promise<Leave[]> {
-    let query = db.select().from(leaves);
-
-    if (filters?.employeeId && filters?.status) {
-      query = query.where(and(
-        eq(leaves.employeeId, filters.employeeId),
-        eq(leaves.status, filters.status)
-      ));
-    } else if (filters?.employeeId) {
-      query = query.where(eq(leaves.employeeId, filters.employeeId));
-    } else if (filters?.status) {
-      query = query.where(eq(leaves.status, filters.status));
-    }
-
-    const result = await query.orderBy(sql`${leaves.createdAt} DESC`);
-    return result;
-  }
-
-  async createLeave(insertLeave: InsertLeave): Promise<Leave> {
-    const [leave] = await db
-      .insert(leaves)
-      .values({
-        ...insertLeave,
-        status: insertLeave.status ?? "pending"
-      })
-      .returning();
-    return leave;
-  }
-
-  async updateLeave(id: string, updates: Partial<InsertLeave>): Promise<Leave | undefined> {
-    const updateData = { ...updates };
-    if (updates.status === "approved" && !updateData.approvedAt) {
-      updateData.approvedAt = new Date();
-    }
-    
-    const [updated] = await db
-      .update(leaves)
-      .set(updateData)
-      .where(eq(leaves.id, id))
-      .returning();
-    return updated || undefined;
-  }
-
-  async deleteLeave(id: string): Promise<boolean> {
-    const result = await db.delete(leaves).where(eq(leaves.id, id));
-    return result.rowCount > 0;
-  }
-
-  // Stub implementations for other required methods
-  async getShifts(): Promise<Shift[]> { return []; }
-  async getShift(id: string): Promise<Shift | undefined> { return undefined; }
-  async createShift(shift: InsertShift): Promise<Shift> { throw new Error("Not implemented"); }
-  async updateShift(id: string, shift: Partial<InsertShift>): Promise<Shift | undefined> { return undefined; }
-  async deleteShift(id: string): Promise<boolean> { return false; }
-
-  async getAttendance(filters?: { employeeId?: string; startDate?: Date; endDate?: Date }): Promise<Attendance[]> { return []; }
-  async getAttendanceById(id: string): Promise<Attendance | undefined> { return undefined; }
-  async createAttendance(attendance: InsertAttendance): Promise<Attendance> { throw new Error("Not implemented"); }
-  async updateAttendance(id: string, attendance: Partial<InsertAttendance>): Promise<Attendance | undefined> { return undefined; }
-  async deleteAttendance(id: string): Promise<boolean> { return false; }
-
-  async getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]> { return []; }
-  async createPayroll(payroll: InsertPayroll): Promise<Payroll> { throw new Error("Not implemented"); }
-  async updatePayroll(id: string, payroll: Partial<InsertPayroll>): Promise<Payroll | undefined> { return undefined; }
-
-  async getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]> { return []; }
-  async createPerformance(performance: InsertPerformance): Promise<Performance> { throw new Error("Not implemented"); }
-  async updatePerformance(id: string, performance: Partial<InsertPerformance>): Promise<Performance | undefined> { return undefined; }
-  async deletePerformance(id: string): Promise<boolean> { return false; }
-
-  async getJobOpenings(): Promise<JobOpening[]> { return []; }
-  async getJobOpening(id: string): Promise<JobOpening | undefined> { return undefined; }
-  async createJobOpening(jobOpening: InsertJobOpening): Promise<JobOpening> { throw new Error("Not implemented"); }
-  async updateJobOpening(id: string, jobOpening: Partial<InsertJobOpening>): Promise<JobOpening | undefined> { return undefined; }
-  async deleteJobOpening(id: string): Promise<boolean> { return false; }
-
-  async getJobApplications(jobId?: string): Promise<JobApplication[]> { return []; }
-  async getJobApplication(id: string): Promise<JobApplication | undefined> { return undefined; }
-  async createJobApplication(application: InsertJobApplication): Promise<JobApplication> { throw new Error("Not implemented"); }
-  async updateJobApplication(id: string, application: Partial<InsertJobApplication>): Promise<JobApplication | undefined> { return undefined; }
-  async deleteJobApplication(id: string): Promise<boolean> { return false; }
-
-  async getActivities(limit?: number): Promise<Activity[]> {
-    let query = db.select().from(activities);
-    if (limit) {
-      query = query.limit(limit);
-    }
-    return await query.orderBy(sql`${activities.createdAt} DESC`);
-  }
-  
-  async createActivity(insertActivity: InsertActivity): Promise<Activity> {
-    const [activity] = await db
-      .insert(activities)
-      .values(insertActivity)
-      .returning();
-    return activity;
-  }
-
-  async getClientSites(): Promise<ClientSite[]> { return []; }
-  async createClientSite(siteData: Omit<ClientSite, 'id' | 'createdAt' | 'updatedAt'>): Promise<ClientSite> { throw new Error("Not implemented"); }
-
-  async getBiometricDevices(): Promise<BiometricDevice[]> { return []; }
-  async getBiometricDevice(deviceId: string): Promise<BiometricDevice | undefined> { return undefined; }
-  async createBiometricDevice(deviceData: Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>): Promise<BiometricDevice> { throw new Error("Not implemented"); }
-  async updateBiometricDevice(deviceId: string, updates: Partial<Omit<BiometricDevice, 'id' | 'createdAt' | 'updatedAt'>>): Promise<BiometricDevice | undefined> { return undefined; }
-  async deleteBiometricDevice(deviceId: string): Promise<boolean> { return false; }
-
-  async getOvertimeRequests(filters?: { employeeId?: string; status?: string }): Promise<OvertimeRequest[]> { return []; }
-  async createOvertimeRequest(request: Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>): Promise<OvertimeRequest> { throw new Error("Not implemented"); }
-  async updateOvertimeRequest(id: string, updates: Partial<Omit<OvertimeRequest, 'id' | 'createdAt' | 'updatedAt'>>): Promise<OvertimeRequest | undefined> { return undefined; }
-
-  async processBiometricPunch(punchData: any): Promise<any> { throw new Error("Not implemented"); }
-}
-
+// Export storage instance
 export const storage = new DatabaseStorage();
