@@ -265,20 +265,20 @@ export function EmployeeBenefitsTab({ employeeId }: EmployeeBenefitsTabProps) {
                   <div>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-green-600" />
-                      {allowanceTypes.find(type => type.value === allowance.allowanceType)?.label || 
-                       (allowance.allowanceType ? allowance.allowanceType.charAt(0).toUpperCase() + allowance.allowanceType.slice(1) + " Allowance" : "Unknown Allowance")}
+                      {allowanceTypes.find(type => type.value === allowance?.allowanceType)?.label || 
+                       (allowance?.allowanceType ? allowance.allowanceType.charAt(0).toUpperCase() + allowance.allowanceType.slice(1) + " Allowance" : "Unknown Allowance")}
                     </CardTitle>
                     <CardDescription>
-                      {allowance.description || `${allowance.frequency} allowance payment`}
+                      {allowance?.description || `${allowance?.frequency || 'monthly'} allowance payment`}
                     </CardDescription>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-green-600">
-                      ₹{allowance.amount.toLocaleString()}
-                      {allowance.isPercentage && "%"}
+                      ₹{allowance?.amount?.toLocaleString() || '0'}
+                      {allowance?.isPercentage && "%"}
                     </div>
                     <Badge variant="secondary" className="capitalize">
-                      {allowance.frequency}
+                      {allowance?.frequency || 'monthly'}
                     </Badge>
                   </div>
                 </div>
@@ -287,15 +287,15 @@ export function EmployeeBenefitsTab({ employeeId }: EmployeeBenefitsTabProps) {
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
-                    Start: {new Date(allowance.startDate).toLocaleDateString()}
+                    Start: {allowance?.startDate ? new Date(allowance.startDate).toLocaleDateString() : 'N/A'}
                   </span>
-                  {allowance.endDate && (
+                  {allowance?.endDate && (
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
                       End: {new Date(allowance.endDate).toLocaleDateString()}
                     </span>
                   )}
-                  {allowance.isActive && (
+                  {allowance?.isActive && (
                     <Badge variant="outline" className="text-green-600 border-green-600">
                       Active
                     </Badge>
