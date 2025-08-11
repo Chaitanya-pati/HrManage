@@ -6,15 +6,14 @@ import {
   insertDepartmentSchema,
   insertAttendanceSchema,
   insertLeaveSchema,
-  insertPayslipSchema,
+  insertPayrollSchema,
   insertPerformanceSchema,
   insertShiftSchema,
   insertJobOpeningSchema,
   insertApplicationSchema,
   insertEmployeeAllowanceSchema,
   insertEmployeeDeductionSchema,
-  insertEmployeeLeaveBalanceSchema,
-  insertSalaryComponentsSchema
+  insertEmployeeLeaveBalanceSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {

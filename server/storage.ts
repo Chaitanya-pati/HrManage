@@ -4,7 +4,7 @@ import {
   type Employee, type InsertEmployee,
   type Attendance, type InsertAttendance,
   type Leave, type InsertLeave,
-  type Payslip, type InsertPayslip,
+  type Payroll, type InsertPayroll,
   type Performance, type InsertPerformance,
   type Shift, type InsertShift,
   type JobOpening, type InsertJobOpening,
@@ -12,10 +12,8 @@ import {
   type EmployeeAllowance, type InsertEmployeeAllowance,
   type EmployeeDeduction, type InsertEmployeeDeduction,
   type EmployeeLeaveBalance, type InsertEmployeeLeaveBalance,
-  type SalaryComponent, type InsertSalaryComponent,
-  users, departments, employees, leaves, attendance, performance, shifts, jobOpenings, applications, payslips,
-  employeeAllowances, employeeDeductions, employeeLeaveBalances,
-  salaryComponents
+  users, departments, employees, leaves, attendance, performance, shifts, jobOpenings, applications, payroll,
+  employeeAllowances, employeeDeductions, employeeLeaveBalances
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -62,10 +60,10 @@ export interface IStorage {
   updateLeave(id: string, leave: Partial<InsertLeave>): Promise<Leave | undefined>;
   deleteLeave(id: string): Promise<boolean>;
 
-  // Payslips
-  getPayslips(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payslip[]>;
-  createPayslip(payslip: InsertPayslip): Promise<Payslip>;
-  updatePayslip(id: string, payslip: Partial<InsertPayslip>): Promise<Payslip | undefined>;
+  // Payroll
+  getPayroll(filters?: { employeeId?: string; month?: number; year?: number }): Promise<Payroll[]>;
+  createPayroll(payroll: InsertPayroll): Promise<Payroll>;
+  updatePayroll(id: string, payroll: Partial<InsertPayroll>): Promise<Payroll | undefined>;
 
   // Performance
   getPerformance(filters?: { employeeId?: string; year?: number }): Promise<Performance[]>;
@@ -103,114 +101,88 @@ export interface IStorage {
   createActivity(activity: any): Promise<any>;
 
   // Employee Allowances
-  getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowances[]>;
-  createEmployeeAllowance(allowance: InsertEmployeeAllowances): Promise<EmployeeAllowances>;
-  updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowances>): Promise<EmployeeAllowances | undefined>;
+  getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowance[]>;
+  createEmployeeAllowance(allowance: InsertEmployeeAllowance): Promise<EmployeeAllowance>;
+  updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowance>): Promise<EmployeeAllowance | undefined>;
   deleteEmployeeAllowance(id: string): Promise<boolean>;
 
   // Employee Deductions
-  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeductions[]>;
-  createEmployeeDeduction(deduction: InsertEmployeeDeductions): Promise<EmployeeDeductions>;
-  updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeductions>): Promise<EmployeeDeductions | undefined>;
+  getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]>;
+  createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction>;
+  updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeduction>): Promise<EmployeeDeduction | undefined>;
   deleteEmployeeDeduction(id: string): Promise<boolean>;
 
   // Employee Leave Balances
-  getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalances[]>;
-  createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalances): Promise<EmployeeLeaveBalances>;
-  updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalances>): Promise<EmployeeLeaveBalances | undefined>;
+  getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalance[]>;
+  createEmployeeLeaveBalance(balance: InsertEmployeeLeaveBalance): Promise<EmployeeLeaveBalance>;
+  updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalance>): Promise<EmployeeLeaveBalance | undefined>;
   deleteEmployeeLeaveBalance(id: string): Promise<boolean>;
 
-  // Advanced Payroll Features
-  getSalaryComponents(employeeId: string, financialYear?: string): Promise<SalaryComponents[]>;
-  createSalaryComponent(component: InsertSalaryComponents): Promise<SalaryComponents>;
-  updateSalaryComponent(id: string, component: Partial<InsertSalaryComponents>): Promise<SalaryComponents | undefined>;
 
-  getTdsConfiguration(financialYear: string): Promise<TdsConfiguration | undefined>;
-  createTdsConfiguration(config: InsertTdsConfiguration): Promise<TdsConfiguration>;
-  updateTdsConfiguration(id: string, config: Partial<InsertTdsConfiguration>): Promise<TdsConfiguration | undefined>;
-
-  getPayslips(filters?: { employeeId?: string; payPeriod?: string }): Promise<Payslips[]>;
-  createPayslip(payslip: InsertPayslips): Promise<Payslips>;
-  updatePayslip(id: string, payslip: Partial<InsertPayslips>): Promise<Payslips | undefined>;
-
-  getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]>;
-  createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans>;
-  updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined>;
-
-  getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]>;
-  createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances>;
-  updateSalaryAdvance(id: string, advance: Partial<InsertSalaryAdvances>): Promise<SalaryAdvances | undefined>;
-
-  getComplianceReports(filters?: { reportType?: string; financialYear?: string }): Promise<ComplianceReports[]>;
-  createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports>;
-
-  getNotifications(employeeId?: string): Promise<Notifications[]>;
-  createNotification(notification: InsertNotifications): Promise<Notifications>;
-  updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
-  private db = db; // Instance of the database connection
+  private database = db; // Instance of the database connection
 
   // Users
   async getUser(id: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
+    const result = await this.database.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.username, username)).limit(1);
+    const result = await this.database.select().from(users).where(eq(users.username, username)).limit(1);
     return result[0];
   }
 
   async createUser(user: InsertUser): Promise<User> {
     const id = randomUUID();
-    const result = await this.db.insert(users).values({ ...user, id }).returning();
+    const result = await this.database.insert(users).values({ ...user, id }).returning();
     return result[0];
   }
 
   // Departments
   async getDepartments(): Promise<Department[]> {
-    return await this.db.select().from(departments).orderBy(departments.name);
+    return await this.database.select().from(departments).orderBy(departments.name);
   }
 
   async getDepartment(id: string): Promise<Department | undefined> {
-    const result = await this.db.select().from(departments).where(eq(departments.id, id)).limit(1);
+    const result = await this.database.select().from(departments).where(eq(departments.id, id)).limit(1);
     return result[0];
   }
 
   async createDepartment(department: InsertDepartment): Promise<Department> {
     const id = randomUUID();
-    const result = await this.db.insert(departments).values({ ...department, id }).returning();
+    const result = await this.database.insert(departments).values({ ...department, id }).returning();
     return result[0];
   }
 
   async updateDepartment(id: string, department: Partial<InsertDepartment>): Promise<Department | undefined> {
-    const result = await this.db.update(departments).set(department).where(eq(departments.id, id)).returning();
+    const result = await this.database.update(departments).set(department).where(eq(departments.id, id)).returning();
     return result[0];
   }
 
   async deleteDepartment(id: string): Promise<boolean> {
-    const result = await this.db.delete(departments).where(eq(departments.id, id));
+    const result = await this.database.delete(departments).where(eq(departments.id, id));
     return result.changes > 0;
   }
 
   // Employees
   async getEmployees(): Promise<Employee[]> {
     console.log('DatabaseStorage: getEmployees called');
-    const result = await this.db.select().from(employees).orderBy(employees.firstName, employees.lastName);
+    const result = await this.database.select().from(employees).orderBy(employees.firstName, employees.lastName);
     console.log('DatabaseStorage: getEmployees result count:', result.length);
     console.log('DatabaseStorage: First 3 employees:', result.slice(0, 3).map(e => ({ id: e.id, employeeId: e.employeeId, firstName: e.firstName, lastName: e.lastName })));
     return result;
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {
-    const result = await this.db.select().from(employees).where(eq(employees.id, id)).limit(1);
+    const result = await this.database.select().from(employees).where(eq(employees.id, id)).limit(1);
     return result[0];
   }
 
   async getEmployeeByEmail(email: string): Promise<Employee | undefined> {
-    const result = await this.db.select().from(employees).where(eq(employees.email, email)).limit(1);
+    const result = await this.database.select().from(employees).where(eq(employees.email, email)).limit(1);
     return result[0];
   }
 
@@ -224,43 +196,43 @@ export class DatabaseStorage implements IStorage {
       probationEndDate: employee.probationEndDate ? Math.floor(new Date(employee.probationEndDate).getTime() / 1000) : undefined,
       confirmationDate: employee.confirmationDate ? Math.floor(new Date(employee.confirmationDate).getTime() / 1000) : undefined,
     };
-    const result = await this.db.insert(employees).values(employeeData as any).returning();
+    const result = await this.database.insert(employees).values(employeeData as any).returning();
     return result[0];
   }
 
   async updateEmployee(id: string, employee: Partial<InsertEmployee>): Promise<Employee | undefined> {
-    const result = await this.db.update(employees).set(employee).where(eq(employees.id, id)).returning();
+    const result = await this.database.update(employees).set(employee).where(eq(employees.id, id)).returning();
     return result[0];
   }
 
   async deleteEmployee(id: string): Promise<boolean> {
-    const result = await this.db.delete(employees).where(eq(employees.id, id));
+    const result = await this.database.delete(employees).where(eq(employees.id, id));
     return result.changes > 0;
   }
 
   // Shifts
   async getShifts(): Promise<Shift[]> {
-    return await this.db.select().from(shifts).orderBy(shifts.name);
+    return await this.database.select().from(shifts).orderBy(shifts.name);
   }
 
   async getShift(id: string): Promise<Shift | undefined> {
-    const result = await this.db.select().from(shifts).where(eq(shifts.id, id)).limit(1);
+    const result = await this.database.select().from(shifts).where(eq(shifts.id, id)).limit(1);
     return result[0];
   }
 
   async createShift(shift: InsertShift): Promise<Shift> {
     const id = randomUUID();
-    const result = await this.db.insert(shifts).values({ ...shift, id }).returning();
+    const result = await this.database.insert(shifts).values({ ...shift, id }).returning();
     return result[0];
   }
 
   async updateShift(id: string, shift: Partial<InsertShift>): Promise<Shift | undefined> {
-    const result = await this.db.update(shifts).set(shift).where(eq(shifts.id, id)).returning();
+    const result = await this.database.update(shifts).set(shift).where(eq(shifts.id, id)).returning();
     return result[0];
   }
 
   async deleteShift(id: string): Promise<boolean> {
-    const result = await this.db.delete(shifts).where(eq(shifts.id, id));
+    const result = await this.database.delete(shifts).where(eq(shifts.id, id));
     return result.changes > 0;
   }
 
@@ -281,30 +253,30 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      return await this.db.select().from(attendance).where(and(...conditions)).orderBy(desc(attendance.date));
+      return await this.database.select().from(attendance).where(and(...conditions)).orderBy(desc(attendance.date));
     } else {
-      return await this.db.select().from(attendance).orderBy(desc(attendance.date));
+      return await this.database.select().from(attendance).orderBy(desc(attendance.date));
     }
   }
 
   async getAttendanceById(id: string): Promise<Attendance | undefined> {
-    const result = await this.db.select().from(attendance).where(eq(attendance.id, id)).limit(1);
+    const result = await this.database.select().from(attendance).where(eq(attendance.id, id)).limit(1);
     return result[0];
   }
 
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
     const id = randomUUID();
-    const result = await this.db.insert(attendance).values({ ...attendanceData, id }).returning();
+    const result = await this.database.insert(attendance).values({ ...attendanceData, id }).returning();
     return result[0];
   }
 
   async updateAttendance(id: string, attendanceData: Partial<InsertAttendance>): Promise<Attendance | undefined> {
-    const result = await this.db.update(attendance).set(attendanceData).where(eq(attendance.id, id)).returning();
+    const result = await this.database.update(attendance).set(attendanceData).where(eq(attendance.id, id)).returning();
     return result[0];
   }
 
   async deleteAttendance(id: string): Promise<boolean> {
-    const result = await this.db.delete(attendance).where(eq(attendance.id, id));
+    const result = await this.database.delete(attendance).where(eq(attendance.id, id));
     return result.changes > 0;
   }
 
@@ -322,9 +294,9 @@ export class DatabaseStorage implements IStorage {
 
     let result;
     if (conditions.length > 0) {
-      result = await this.db.select().from(leaves).where(and(...conditions)).orderBy(desc(leaves.createdAt));
+      result = await this.database.select().from(leaves).where(and(...conditions)).orderBy(desc(leaves.createdAt));
     } else {
-      result = await this.db.select().from(leaves).orderBy(desc(leaves.createdAt));
+      result = await this.database.select().from(leaves).orderBy(desc(leaves.createdAt));
     }
 
     // Convert Unix timestamps back to Date objects for frontend
@@ -349,7 +321,7 @@ export class DatabaseStorage implements IStorage {
       createdAt: Math.floor(Date.now() / 1000)
     };
 
-    const result = await this.db.insert(leaves).values(leaveData as any).returning();
+    const result = await this.database.insert(leaves).values(leaveData as any).returning();
 
     // Convert back to Date objects for frontend
     return {
@@ -371,7 +343,7 @@ export class DatabaseStorage implements IStorage {
       updateData.endDate = Math.floor(new Date(leave.endDate).getTime() / 1000);
     }
 
-    const result = await this.db.update(leaves).set(updateData).where(eq(leaves.id, id)).returning();
+    const result = await this.database.update(leaves).set(updateData).where(eq(leaves.id, id)).returning();
     if (result[0]) {
       return {
         ...result[0],
@@ -385,7 +357,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteLeave(id: string): Promise<boolean> {
-    const result = await this.db.delete(leaves).where(eq(leaves.id, id));
+    const result = await this.database.delete(leaves).where(eq(leaves.id, id));
     return result.changes > 0;
   }
 
@@ -406,20 +378,20 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      return await this.db.select().from(payroll).where(and(...conditions)).orderBy(desc(payroll.year), desc(payroll.month));
+      return await this.database.select().from(payroll).where(and(...conditions)).orderBy(desc(payroll.year), desc(payroll.month));
     }
 
-    return await this.db.select().from(payroll).orderBy(desc(payroll.year), desc(payroll.month));
+    return await this.database.select().from(payroll).orderBy(desc(payroll.year), desc(payroll.month));
   }
 
   async createPayroll(payrollData: InsertPayroll): Promise<Payroll> {
     const id = randomUUID();
-    const result = await this.db.insert(payroll).values({ ...payrollData, id }).returning();
+    const result = await this.database.insert(payroll).values({ ...payrollData, id }).returning();
     return result[0];
   }
 
   async updatePayroll(id: string, payrollData: Partial<InsertPayroll>): Promise<Payroll | undefined> {
-    const result = await this.db.update(payroll).set(payrollData).where(eq(payroll.id, id)).returning();
+    const result = await this.database.update(payroll).set(payrollData).where(eq(payroll.id, id)).returning();
     return result[0];
   }
 
@@ -432,81 +404,81 @@ export class DatabaseStorage implements IStorage {
     }
 
     if (conditions.length > 0) {
-      return await this.db.select().from(performance).where(and(...conditions)).orderBy(desc(performance.createdAt));
+      return await this.database.select().from(performance).where(and(...conditions)).orderBy(desc(performance.createdAt));
     }
 
-    return await this.db.select().from(performance).orderBy(desc(performance.createdAt));
+    return await this.database.select().from(performance).orderBy(desc(performance.createdAt));
   }
 
   async createPerformance(performanceData: InsertPerformance): Promise<Performance> {
     const id = randomUUID();
-    const result = await this.db.insert(performance).values({ ...performanceData, id }).returning();
+    const result = await this.database.insert(performance).values({ ...performanceData, id }).returning();
     return result[0];
   }
 
   async updatePerformance(id: string, performanceData: Partial<InsertPerformance>): Promise<Performance | undefined> {
-    const result = await this.db.update(performance).set(performanceData).where(eq(performance.id, id)).returning();
+    const result = await this.database.update(performance).set(performanceData).where(eq(performance.id, id)).returning();
     return result[0];
   }
 
   async deletePerformance(id: string): Promise<boolean> {
-    const result = await this.db.delete(performance).where(eq(performance.id, id));
+    const result = await this.database.delete(performance).where(eq(performance.id, id));
     return result.changes > 0;
   }
 
   // Job Openings
   async getJobOpenings(): Promise<JobOpening[]> {
-    return await this.db.select().from(jobOpenings).orderBy(desc(jobOpenings.createdAt));
+    return await this.database.select().from(jobOpenings).orderBy(desc(jobOpenings.createdAt));
   }
 
   async getJobOpening(id: string): Promise<JobOpening | undefined> {
-    const result = await this.db.select().from(jobOpenings).where(eq(jobOpenings.id, id)).limit(1);
+    const result = await this.database.select().from(jobOpenings).where(eq(jobOpenings.id, id)).limit(1);
     return result[0];
   }
 
   async createJobOpening(jobOpening: InsertJobOpening): Promise<JobOpening> {
     const id = randomUUID();
-    const result = await this.db.insert(jobOpenings).values({ ...jobOpening, id }).returning();
+    const result = await this.database.insert(jobOpenings).values({ ...jobOpening, id }).returning();
     return result[0];
   }
 
   async updateJobOpening(id: string, jobOpening: Partial<InsertJobOpening>): Promise<JobOpening | undefined> {
-    const result = await this.db.update(jobOpenings).set(jobOpening).where(eq(jobOpenings.id, id)).returning();
+    const result = await this.database.update(jobOpenings).set(jobOpening).where(eq(jobOpenings.id, id)).returning();
     return result[0];
   }
 
   async deleteJobOpening(id: string): Promise<boolean> {
-    const result = await this.db.delete(jobOpenings).where(eq(jobOpenings.id, id));
+    const result = await this.database.delete(jobOpenings).where(eq(jobOpenings.id, id));
     return result.changes > 0;
   }
 
   // Applications
   async getApplications(jobId?: string): Promise<Application[]> {
     if (jobId) {
-      return await this.db.select().from(applications).where(eq(applications.jobId, jobId)).orderBy(desc(applications.submittedAt));
+      return await this.database.select().from(applications).where(eq(applications.jobId, jobId)).orderBy(desc(applications.submittedAt));
     }
 
-    return await this.db.select().from(applications).orderBy(desc(applications.submittedAt));
+    return await this.database.select().from(applications).orderBy(desc(applications.submittedAt));
   }
 
   async getApplication(id: string): Promise<Application | undefined> {
-    const result = await this.db.select().from(applications).where(eq(applications.id, id)).limit(1);
+    const result = await this.database.select().from(applications).where(eq(applications.id, id)).limit(1);
     return result[0];
   }
 
   async createApplication(application: InsertApplication): Promise<Application> {
     const id = randomUUID();
-    const result = await this.db.insert(applications).values({ ...application, id }).returning();
+    const result = await this.database.insert(applications).values({ ...application, id }).returning();
     return result[0];
   }
 
   async updateApplication(id: string, application: Partial<InsertApplication>): Promise<Application | undefined> {
-    const result = await this.db.update(applications).set(application).where(eq(applications.id, id)).returning();
+    const result = await this.database.update(applications).set(application).where(eq(applications.id, id)).returning();
     return result[0];
   }
 
   async deleteApplication(id: string): Promise<boolean> {
-    const result = await this.db.delete(applications).where(eq(applications.id, id));
+    const result = await this.database.delete(applications).where(eq(applications.id, id));
     return result.changes > 0;
   }
 
@@ -520,9 +492,9 @@ export class DatabaseStorage implements IStorage {
     departmentDistribution: { name: string; count: number }[];
     attendanceTrend: { date: string; rate: number }[];
   }> {
-    const employeesCount = await this.db.select({ count: sql<number>`count(*)` }).from(employees);
-    const pendingLeavesCount = await this.db.select({ count: sql<number>`count(*)` }).from(leaves).where(eq(leaves.status, 'pending'));
-    const openPositionsCount = await this.db.select({ count: sql<number>`count(*)` }).from(jobOpenings).where(eq(jobOpenings.status, 'active'));
+    const employeesCount = await this.database.select({ count: sql<number>`count(*)` }).from(employees);
+    const pendingLeavesCount = await this.database.select({ count: sql<number>`count(*)` }).from(leaves).where(eq(leaves.status, 'pending'));
+    const openPositionsCount = await this.database.select({ count: sql<number>`count(*)` }).from(jobOpenings).where(eq(jobOpenings.status, 'active'));
 
     return {
       totalEmployees: employeesCount[0]?.count || 0,
@@ -548,18 +520,18 @@ export class DatabaseStorage implements IStorage {
 
   // Employee Allowances
   async getEmployeeAllowances(employeeId: string): Promise<EmployeeAllowance[]> {
-    const result = await this.db.select().from(employeeAllowances)
+    const result = await this.database.select().from(employeeAllowances)
       .where(and(eq(employeeAllowances.employeeId, employeeId), eq(employeeAllowances.isActive, true)));
     return result;
   }
 
   async createEmployeeAllowance(allowance: InsertEmployeeAllowance): Promise<EmployeeAllowance> {
-    const result = await this.db.insert(employeeAllowances).values(allowance).returning();
+    const result = await this.database.insert(employeeAllowances).values(allowance).returning();
     return result[0];
   }
 
   async updateEmployeeAllowance(id: string, allowance: Partial<InsertEmployeeAllowance>): Promise<EmployeeAllowance | undefined> {
-    const result = await this.db.update(employeeAllowances)
+    const result = await this.database.update(employeeAllowances)
       .set({ ...allowance, updatedAt: new Date() })
       .where(eq(employeeAllowances.id, id))
       .returning();
@@ -567,7 +539,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEmployeeAllowance(id: string): Promise<boolean> {
-    const result = await this.db.update(employeeAllowances)
+    const result = await this.database.update(employeeAllowances)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(employeeAllowances.id, id));
     return result.changes > 0;
@@ -575,18 +547,18 @@ export class DatabaseStorage implements IStorage {
 
   // Employee Deductions
   async getEmployeeDeductions(employeeId: string): Promise<EmployeeDeduction[]> {
-    const result = await this.db.select().from(employeeDeductions)
+    const result = await this.database.select().from(employeeDeductions)
       .where(and(eq(employeeDeductions.employeeId, employeeId), eq(employeeDeductions.isActive, true)));
     return result;
   }
 
   async createEmployeeDeduction(deduction: InsertEmployeeDeduction): Promise<EmployeeDeduction> {
-    const result = await this.db.insert(employeeDeductions).values(deduction).returning();
+    const result = await this.database.insert(employeeDeductions).values(deduction).returning();
     return result[0];
   }
 
   async updateEmployeeDeduction(id: string, deduction: Partial<InsertEmployeeDeduction>): Promise<EmployeeDeduction | undefined> {
-    const result = await this.db.update(employeeDeductions)
+    const result = await this.database.update(employeeDeductions)
       .set({ ...deduction, updatedAt: new Date() })
       .where(eq(employeeDeductions.id, id))
       .returning();
@@ -594,7 +566,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEmployeeDeduction(id: string): Promise<boolean> {
-    const result = await this.db.update(employeeDeductions)
+    const result = await this.database.update(employeeDeductions)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(employeeDeductions.id, id));
     return result.changes > 0;
@@ -602,18 +574,18 @@ export class DatabaseStorage implements IStorage {
 
   // Employee Leave Balances
   async getEmployeeLeaveBalances(employeeId: string): Promise<EmployeeLeaveBalance[]> {
-    const result = await this.db.select().from(employeeLeaveBalances)
+    const result = await this.database.select().from(employeeLeaveBalances)
       .where(and(eq(employeeLeaveBalances.employeeId, employeeId), eq(employeeLeaveBalances.isActive, true)));
     return result;
   }
 
   async createEmployeeLeaveBalance(data: InsertEmployeeLeaveBalance): Promise<EmployeeLeaveBalance> {
-    const [balance] = await this.db.insert(employeeLeaveBalances).values(data).returning();
+    const [balance] = await this.database.insert(employeeLeaveBalances).values(data).returning();
     return balance;
   }
 
   async updateEmployeeLeaveBalance(id: string, balance: Partial<InsertEmployeeLeaveBalance>): Promise<EmployeeLeaveBalance | undefined> {
-    const result = await this.db.update(employeeLeaveBalances)
+    const result = await this.database.update(employeeLeaveBalances)
       .set({ ...balance, updatedAt: new Date() })
       .where(eq(employeeLeaveBalances.id, id))
       .returning();
@@ -621,7 +593,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteEmployeeLeaveBalance(id: string): Promise<boolean> {
-    const result = await this.db.update(employeeLeaveBalances)
+    const result = await this.database.update(employeeLeaveBalances)
       .set({ isActive: false, updatedAt: new Date() })
       .where(eq(employeeLeaveBalances.id, id));
     return result.changes > 0;
@@ -630,7 +602,7 @@ export class DatabaseStorage implements IStorage {
   // Salary Slips methods
   async getSalarySlips(filters: any = {}): Promise<any[]> {
     try {
-      let query = this.db.select().from(salarySlips);
+      let query = this.database.select().from(salarySlips);
 
       if (filters.employeeId) {
         query = query.where(eq(salarySlips.employeeId, filters.employeeId));
@@ -650,7 +622,7 @@ export class DatabaseStorage implements IStorage {
 
   async createSalarySlip(data: any): Promise<any> {
     try {
-      const [salarySlip] = await this.db.insert(payslips).values(data).returning();
+      const [salarySlip] = await this.database.insert(payslips).values(data).returning();
       return salarySlip;
     } catch (error) {
       console.error('DatabaseStorage: createSalarySlip error:', error);
@@ -660,7 +632,7 @@ export class DatabaseStorage implements IStorage {
 
   // Advanced Payroll Methods Implementation
   async getSalaryComponents(employeeId: string, financialYear?: string): Promise<SalaryComponents[]> {
-    let query = this.db.select().from(salaryComponents)
+    let query = this.database.select().from(salaryComponents)
       .where(and(eq(salaryComponents.employeeId, employeeId), eq(salaryComponents.isActive, true)));
     
     if (financialYear) {
@@ -671,12 +643,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSalaryComponent(component: InsertSalaryComponents): Promise<SalaryComponents> {
-    const [result] = await this.db.insert(salaryComponents).values(component).returning();
+    const [result] = await this.database.insert(salaryComponents).values(component).returning();
     return result;
   }
 
   async updateSalaryComponent(id: string, component: Partial<InsertSalaryComponents>): Promise<SalaryComponents | undefined> {
-    const [result] = await this.db.update(salaryComponents)
+    const [result] = await this.database.update(salaryComponents)
       .set({ ...component, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(salaryComponents.id, id))
       .returning();
@@ -684,18 +656,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTdsConfiguration(financialYear: string): Promise<TdsConfiguration | undefined> {
-    const [result] = await this.db.select().from(tdsConfiguration)
+    const [result] = await this.database.select().from(tdsConfiguration)
       .where(and(eq(tdsConfiguration.financialYear, financialYear), eq(tdsConfiguration.isActive, true)));
     return result;
   }
 
   async createTdsConfiguration(config: InsertTdsConfiguration): Promise<TdsConfiguration> {
-    const [result] = await this.db.insert(tdsConfiguration).values(config).returning();
+    const [result] = await this.database.insert(tdsConfiguration).values(config).returning();
     return result;
   }
 
   async getPayslips(filters: any): Promise<Payslips[]> {
-    let query = this.db.select().from(payslips);
+    let query = this.database.select().from(payslips);
     
     const conditions = [];
     if (filters.employeeId) conditions.push(eq(payslips.employeeId, filters.employeeId));
@@ -709,12 +681,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayslip(payslip: InsertPayslips): Promise<Payslips> {
-    const [result] = await this.db.insert(payslips).values(payslip).returning();
+    const [result] = await this.database.insert(payslips).values(payslip).returning();
     return result;
   }
 
   async getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]> {
-    let query = this.db.select().from(employeeLoans);
+    let query = this.database.select().from(employeeLoans);
     if (employeeId) {
       query = query.where(eq(employeeLoans.employeeId, employeeId));
     }
@@ -722,12 +694,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans> {
-    const [result] = await this.db.insert(employeeLoans).values(loan).returning();
+    const [result] = await this.database.insert(employeeLoans).values(loan).returning();
     return result;
   }
 
   async updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined> {
-    const [result] = await this.db.update(employeeLoans)
+    const [result] = await this.database.update(employeeLoans)
       .set({ ...loan, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(employeeLoans.id, id))
       .returning();
@@ -735,7 +707,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]> {
-    let query = this.db.select().from(salaryAdvances);
+    let query = this.database.select().from(salaryAdvances);
     if (employeeId) {
       query = query.where(eq(salaryAdvances.employeeId, employeeId));
     }
@@ -743,12 +715,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances> {
-    const [result] = await this.db.insert(salaryAdvances).values(advance).returning();
+    const [result] = await this.database.insert(salaryAdvances).values(advance).returning();
     return result;
   }
 
   async getComplianceReports(filters: any): Promise<ComplianceReports[]> {
-    let query = this.db.select().from(complianceReports);
+    let query = this.database.select().from(complianceReports);
     
     const conditions = [];
     if (filters.reportType) conditions.push(eq(complianceReports.reportType, filters.reportType));
@@ -762,12 +734,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports> {
-    const [result] = await this.db.insert(complianceReports).values(report).returning();
+    const [result] = await this.database.insert(complianceReports).values(report).returning();
     return result;
   }
 
   async getNotifications(employeeId?: string): Promise<Notifications[]> {
-    let query = this.db.select().from(notifications);
+    let query = this.database.select().from(notifications);
     if (employeeId) {
       query = query.where(eq(notifications.employeeId, employeeId));
     }
@@ -775,12 +747,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNotification(notification: InsertNotifications): Promise<Notifications> {
-    const [result] = await this.db.insert(notifications).values(notification).returning();
+    const [result] = await this.database.insert(notifications).values(notification).returning();
     return result;
   }
 
   async updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined> {
-    const [result] = await this.db.update(notifications)
+    const [result] = await this.database.update(notifications)
       .set(notification)
       .where(eq(notifications.id, id))
       .returning();
@@ -788,7 +760,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateTdsConfiguration(id: string, config: Partial<InsertTdsConfiguration>): Promise<TdsConfiguration | undefined> {
-    const [result] = await this.db.update(tdsConfiguration)
+    const [result] = await this.database.update(tdsConfiguration)
       .set(config)
       .where(eq(tdsConfiguration.id, id))
       .returning();
@@ -796,7 +768,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPayslips(filters?: { employeeId?: string; payPeriod?: string }): Promise<Payslips[]> {
-    let query = this.db.select().from(payslips);
+    let query = this.database.select().from(payslips);
     
     if (filters?.employeeId) {
       query = query.where(eq(payslips.employeeId, filters.employeeId));
@@ -810,12 +782,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPayslip(payslip: InsertPayslips): Promise<Payslips> {
-    const [result] = await this.db.insert(payslips).values(payslip).returning();
+    const [result] = await this.database.insert(payslips).values(payslip).returning();
     return result;
   }
 
   async updatePayslip(id: string, payslip: Partial<InsertPayslips>): Promise<Payslips | undefined> {
-    const [result] = await this.db.update(payslips)
+    const [result] = await this.database.update(payslips)
       .set(payslip)
       .where(eq(payslips.id, id))
       .returning();
@@ -823,7 +795,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getEmployeeLoans(employeeId?: string): Promise<EmployeeLoans[]> {
-    let query = this.db.select().from(employeeLoans);
+    let query = this.database.select().from(employeeLoans);
     
     if (employeeId) {
       query = query.where(eq(employeeLoans.employeeId, employeeId));
@@ -833,12 +805,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createEmployeeLoan(loan: InsertEmployeeLoans): Promise<EmployeeLoans> {
-    const [result] = await this.db.insert(employeeLoans).values(loan).returning();
+    const [result] = await this.database.insert(employeeLoans).values(loan).returning();
     return result;
   }
 
   async updateEmployeeLoan(id: string, loan: Partial<InsertEmployeeLoans>): Promise<EmployeeLoans | undefined> {
-    const [result] = await this.db.update(employeeLoans)
+    const [result] = await this.database.update(employeeLoans)
       .set({ ...loan, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(employeeLoans.id, id))
       .returning();
@@ -846,7 +818,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSalaryAdvances(employeeId?: string): Promise<SalaryAdvances[]> {
-    let query = this.db.select().from(salaryAdvances);
+    let query = this.database.select().from(salaryAdvances);
     
     if (employeeId) {
       query = query.where(eq(salaryAdvances.employeeId, employeeId));
@@ -856,12 +828,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createSalaryAdvance(advance: InsertSalaryAdvances): Promise<SalaryAdvances> {
-    const [result] = await this.db.insert(salaryAdvances).values(advance).returning();
+    const [result] = await this.database.insert(salaryAdvances).values(advance).returning();
     return result;
   }
 
   async updateSalaryAdvance(id: string, advance: Partial<InsertSalaryAdvances>): Promise<SalaryAdvances | undefined> {
-    const [result] = await this.db.update(salaryAdvances)
+    const [result] = await this.database.update(salaryAdvances)
       .set({ ...advance, updatedAt: sql`CURRENT_TIMESTAMP` })
       .where(eq(salaryAdvances.id, id))
       .returning();
@@ -869,7 +841,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getComplianceReports(filters?: { reportType?: string; financialYear?: string }): Promise<ComplianceReports[]> {
-    let query = this.db.select().from(complianceReports);
+    let query = this.database.select().from(complianceReports);
     
     if (filters?.reportType) {
       query = query.where(eq(complianceReports.reportType, filters.reportType));
@@ -883,12 +855,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createComplianceReport(report: InsertComplianceReports): Promise<ComplianceReports> {
-    const [result] = await this.db.insert(complianceReports).values(report).returning();
+    const [result] = await this.database.insert(complianceReports).values(report).returning();
     return result;
   }
 
   async getNotifications(employeeId?: string): Promise<Notifications[]> {
-    let query = this.db.select().from(notifications);
+    let query = this.database.select().from(notifications);
     
     if (employeeId) {
       query = query.where(eq(notifications.employeeId, employeeId));
@@ -898,12 +870,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNotification(notification: InsertNotifications): Promise<Notifications> {
-    const [result] = await this.db.insert(notifications).values(notification).returning();
+    const [result] = await this.database.insert(notifications).values(notification).returning();
     return result;
   }
 
   async updateNotification(id: string, notification: Partial<InsertNotifications>): Promise<Notifications | undefined> {
-    const [result] = await this.db.update(notifications)
+    const [result] = await this.database.update(notifications)
       .set(notification)
       .where(eq(notifications.id, id))
       .returning();

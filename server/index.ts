@@ -45,13 +45,13 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Seed database with initial data
+  // Initialize database tables on startup
   try {
-    // Assuming seedDatabase is imported from './seed-data' and exists
-    // import { seedDatabase } from "./seed-data"; // This import is added in the changes
-    // await seedDatabase(); // This call is added in the changes
+    const { initializeDatabase } = await import("./init-db");
+    await initializeDatabase();
+    console.log("Database initialization completed successfully");
   } catch (error) {
-    console.log("Database seeding skipped (data may already exist)");
+    console.log("Database already initialized or initialization failed:", error);
   }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
