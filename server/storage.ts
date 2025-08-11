@@ -138,7 +138,11 @@ export class DatabaseStorage implements IStorage {
 
   // Employees
   async getEmployees(): Promise<Employee[]> {
-    return await db.select().from(employees).orderBy(employees.firstName, employees.lastName);
+    console.log('DatabaseStorage: getEmployees called');
+    const result = await db.select().from(employees).orderBy(employees.firstName, employees.lastName);
+    console.log('DatabaseStorage: getEmployees result count:', result.length);
+    console.log('DatabaseStorage: First 3 employees:', result.slice(0, 3).map(e => ({ id: e.id, employeeId: e.employeeId, firstName: e.firstName, lastName: e.lastName })));
+    return result;
   }
 
   async getEmployee(id: string): Promise<Employee | undefined> {

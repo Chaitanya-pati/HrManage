@@ -13,7 +13,12 @@ export default function Employees() {
 
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["/api/employees"],
+    staleTime: 0, // Force fresh data
+    gcTime: 0, // Don't cache
   });
+
+  // Debug: Log what the query returns
+  console.log('Query returned employees:', employees?.length, employees);
 
   const { data: departments = [] } = useQuery({
     queryKey: ["/api/departments"],

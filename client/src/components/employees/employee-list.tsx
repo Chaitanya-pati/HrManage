@@ -86,6 +86,9 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
 
+  // Debug: Log the received employees
+  console.log('EmployeeList received employees:', employees?.length, employees);
+
   const filteredEmployees = employees.filter(employee => {
     const matchesSearch =
       employee.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -269,7 +272,7 @@ export default function EmployeeList({ employees, isLoading }: EmployeeListProps
                           {employee.department?.name || 'Unassigned'}
                         </p>
                         <p className="text-sm text-gray-500">
-                          {employee.department?.description || ''}
+                          
                         </p>
                       </div>
                     </TableCell>
