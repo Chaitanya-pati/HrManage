@@ -97,6 +97,11 @@ export default function LeavesPage() {
   };
 
   const handleSubmitLeave = async () => {
+    if (!Array.isArray(employees) || employees.length === 0) {
+      alert('No employees available. Please add employees first from the Employees page.');
+      return;
+    }
+
     if (!leaveType || !startDate || !endDate || !reason || !selectedEmployee) {
       alert('Please fill in all required fields');
       return;
@@ -113,7 +118,7 @@ export default function LeavesPage() {
     }
 
     // Validate that the selected employee exists
-    const selectedEmp = Array.isArray(employees) ? employees.find((emp: any) => emp.id === selectedEmployee) : null;
+    const selectedEmp = employees.find((emp: any) => emp.id === selectedEmployee);
     if (!selectedEmp) {
       alert('Please select a valid employee');
       return;
@@ -286,8 +291,8 @@ export default function LeavesPage() {
                               {employee.firstName} {employee.lastName} ({employee.employeeId})
                             </SelectItem>
                           )) : (
-                            <SelectItem value="no-employees" disabled>
-                              No employees found
+                            <SelectItem value="" disabled>
+                              {Array.isArray(employees) ? "No employees found - Please add employees first" : "Loading employees..."}
                             </SelectItem>
                           )}
                         </SelectContent>

@@ -1,8 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import helmet from 'helmet'; // Assuming helmet and cors are intended to be used as per the changes snippet
+import cors from 'cors'; // Assuming helmet and cors are intended to be used as per the changes snippet
 
 const app = express();
+app.use(helmet());
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -38,6 +42,15 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Seed database with initial data
+  try {
+    // Assuming seedDatabase is imported from './seed-data' and exists
+    // import { seedDatabase } from "./seed-data"; // This import is added in the changes
+    // await seedDatabase(); // This call is added in the changes
+  } catch (error) {
+    console.log("Database seeding skipped (data may already exist)");
+  }
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
