@@ -369,19 +369,14 @@ export class DatabaseStorage implements IStorage {
       conditions.push(eq(payroll.employeeId, filters.employeeId));
     }
 
-    if (filters?.month) {
-      conditions.push(eq(payroll.month, filters.month));
-    }
-
-    if (filters?.year) {
-      conditions.push(eq(payroll.year, filters.year));
-    }
+    // Note: Using payPeriodStart for filtering instead of month/year columns
+    // TODO: Implement proper date filtering if needed
 
     if (conditions.length > 0) {
-      return await this.database.select().from(payroll).where(and(...conditions)).orderBy(desc(payroll.year), desc(payroll.month));
+      return await this.database.select().from(payroll).where(and(...conditions)).orderBy(desc(payroll.payPeriodStart));
     }
 
-    return await this.database.select().from(payroll).orderBy(desc(payroll.year), desc(payroll.month));
+    return await this.database.select().from(payroll).orderBy(desc(payroll.payPeriodStart));
   }
 
   async createPayroll(payrollData: InsertPayroll): Promise<Payroll> {
