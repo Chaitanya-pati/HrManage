@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,65 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Download, Eye, Users, DollarSign, CheckCircle, Calendar } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
-// Mock data for demonstration while database is being fixed
-const mockEmployees = [
-  {
-    id: "1",
-    employeeId: "EMP001",
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@company.com",
-    position: "Software Engineer",
-    baseSalary: 75000,
-    department: { name: "Engineering" }
-  },
-  {
-    id: "2", 
-    employeeId: "EMP002",
-    firstName: "Sarah",
-    lastName: "Smith",
-    email: "sarah.smith@company.com",
-    position: "HR Manager",
-    baseSalary: 65000,
-    department: { name: "Human Resources" }
-  },
-  {
-    id: "3",
-    employeeId: "EMP003", 
-    firstName: "Mike",
-    lastName: "Johnson",
-    email: "mike.johnson@company.com",
-    position: "Senior Developer",
-    baseSalary: 85000,
-    department: { name: "Engineering" }
-  }
-];
 
-const mockPayslips = [
-  {
-    id: "1",
-    employeeId: "1",
-    payPeriod: "2025-01",
-    basicSalary: 75000,
-    hra: 30000,
-    transportAllowance: 2000,
-    medicalAllowance: 1500,
-    specialAllowance: 7500,
-    grossSalary: 116000,
-    pfDeduction: 1800,
-    esiDeduction: 0,
-    professionalTax: 200,
-    tds: 8333,
-    totalDeductions: 10333,
-    netSalary: 105667,
-    workingDays: 30,
-    paidDays: 26,
-    leaveDays: 4,
-    status: "generated",
-    createdAt: "2025-01-10"
-  }
-];
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -76,98 +21,81 @@ export default function PayslipsWorkingPage() {
   const [selectedEmployee, setSelectedEmployee] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [payslips, setPayslips] = useState(mockPayslips);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedPayslip, setGeneratedPayslip] = useState(null);
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  const generatePayslipData = (emp: any, month: number, year: number) => {
-    const baseSalary = emp.baseSalary || 50000;
-    const hra = baseSalary * 0.4; // 40% HRA
-    const transportAllowance = 2000;
-    const medicalAllowance = 1500;
-    const specialAllowance = baseSalary * 0.1;
-    
-    const grossSalary = baseSalary + hra + transportAllowance + medicalAllowance + specialAllowance;
-    
-    // Calculate deductions
-    const pf = Math.min(baseSalary * 0.12, 1800);
-    const esi = grossSalary <= 25000 ? grossSalary * 0.0175 : 0;
-    const professionalTax = grossSalary > 15000 ? (grossSalary > 25000 ? 200 : 150) : 0;
-    const tds = Math.max(0, (grossSalary * 12 - 300000) * 0.1 / 12);
-    
-    const totalDeductions = pf + esi + professionalTax + tds;
-    const netSalary = grossSalary - totalDeductions;
+  // Fetch real employees from database
+  const { data: employees = [], isLoading: employeesLoading } = useQuery({
+    queryKey: ["/api/employees"],
+  });
 
-    return {
-      id: Date.now().toString(),
-      employeeId: emp.id,
-      payPeriod: `${year}-${month.toString().padStart(2, '0')}`,
-      basicSalary: Math.round(baseSalary),
-      hra: Math.round(hra),
-      transportAllowance: Math.round(transportAllowance),
-      medicalAllowance: Math.round(medicalAllowance),
-      specialAllowance: Math.round(specialAllowance),
-      grossSalary: Math.round(grossSalary),
-      pfDeduction: Math.round(pf),
-      esiDeduction: Math.round(esi),
-      professionalTax: Math.round(professionalTax),
-      tds: Math.round(tds),
-      totalDeductions: Math.round(totalDeductions),
-      netSalary: Math.round(netSalary),
-      workingDays: 30,
-      paidDays: 26,
-      leaveDays: 4,
-      overtimeHours: 0,
-      status: "generated",
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-  };
+  // Fetch departments for display
+  const { data: departments = [] } = useQuery({
+    queryKey: ["/api/departments"],
+  });
+
+  // Fetch existing payslips
+  const { data: payslips = [], isLoading: payslipsLoading } = useQuery({
+    queryKey: ["/api/payslips"],
+  });
+
+  // Generate payslip mutation
+  const generatePayslipMutation = useMutation({
+    mutationFn: async (data: { employeeId: string; month: number; year: number }) => {
+      return apiRequest("/api/payslips/generate", {
+        method: "POST",
+        body: data,
+      });
+    },
+    onSuccess: (data) => {
+      setGeneratedPayslip(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/payslips"] });
+      toast({
+        title: "Success",
+        description: "Payslip generated successfully!",
+      });
+    },
+    onError: (error) => {
+      console.error("Error generating payslip:", error);
+      toast({
+        title: "Error", 
+        description: "Failed to generate payslip. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleGeneratePayslip = async () => {
     if (!selectedEmployee) {
-      toast({ title: "Error", description: "Please select an employee", variant: "destructive" });
-      return;
-    }
-
-    const emp = mockEmployees.find(e => e.id === selectedEmployee);
-    if (!emp) {
-      toast({ title: "Error", description: "Employee not found", variant: "destructive" });
-      return;
-    }
-
-    // Check if payslip already exists for this period
-    const existingPayslip = payslips.find(p => 
-      p.employeeId === selectedEmployee && 
-      p.payPeriod === `${selectedYear}-${selectedMonth.toString().padStart(2, '0')}`
-    );
-
-    if (existingPayslip) {
-      toast({ 
-        title: "Warning", 
-        description: "Payslip already exists for this period", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Please select an employee first.",
+        variant: "destructive",
       });
       return;
     }
 
     setIsGenerating(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      const newPayslip = generatePayslipData(emp, selectedMonth, selectedYear);
-      setPayslips(prev => [...prev, newPayslip]);
-      setIsGenerating(false);
-      
-      toast({ 
-        title: "Success", 
-        description: "Payslip generated successfully",
+    try {
+      await generatePayslipMutation.mutateAsync({
+        employeeId: selectedEmployee,
+        month: selectedMonth,
+        year: selectedYear,
       });
-    }, 1000);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
+
+
   const handleDownloadPayslip = (payslip: any) => {
-    const emp = mockEmployees.find(e => e.id === payslip.employeeId);
+    const emp = employees.find((e: any) => e.id === payslip.employeeId);
+    if (!emp) return;
+
     const payslipHtml = generatePayslipHtml(payslip, emp);
     
     const blob = new Blob([payslipHtml], { type: 'text/html' });
@@ -184,6 +112,18 @@ export default function PayslipsWorkingPage() {
       title: "Download Started",
       description: "Payslip download has been initiated",
     });
+  };
+
+  // Calculate statistics for display
+  const stats = {
+    total: payslips.length,
+    thisMonth: payslips.filter((p: any) => {
+      const payPeriod = p.payPeriod || "";
+      const currentMonth = new Date().getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      return payPeriod === `${currentYear}-${currentMonth.toString().padStart(2, '0')}`;
+    }).length,
+    totalAmount: payslips.reduce((sum: number, p: any) => sum + parseInt(p.netPay || 0), 0)
   };
 
   const generatePayslipHtml = (payslip: any, emp?: any) => {
@@ -295,15 +235,7 @@ export default function PayslipsWorkingPage() {
     `;
   };
 
-  // Statistics
-  const stats = {
-    total: payslips.length,
-    thisMonth: payslips.filter(p => {
-      const [year, month] = p.payPeriod.split('-');
-      return parseInt(year) === selectedYear && parseInt(month) === selectedMonth;
-    }).length,
-    totalAmount: payslips.reduce((sum, p) => sum + (p.netSalary || 0), 0)
-  };
+
 
   return (
     <div className="space-y-6">
@@ -330,7 +262,7 @@ export default function PayslipsWorkingPage() {
                   <SelectValue placeholder="Select employee" />
                 </SelectTrigger>
                 <SelectContent>
-                  {mockEmployees.map((emp) => (
+                  {employees.map((emp: any) => (
                     <SelectItem key={emp.id} value={emp.id}>
                       {emp.firstName} {emp.lastName} ({emp.employeeId})
                     </SelectItem>
@@ -427,6 +359,16 @@ export default function PayslipsWorkingPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {generatedPayslip && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <h3 className="font-medium text-green-800 dark:text-green-200 mb-2">✓ Payslip Generated Successfully!</h3>
+              <div className="text-sm text-green-600 dark:text-green-300">
+                <p>Employee: {generatedPayslip.employee?.firstName} {generatedPayslip.employee?.lastName}</p>
+                <p>Period: {generatedPayslip.payPeriod}</p>
+                <p>Net Pay: ₹{parseInt(generatedPayslip.netPay).toLocaleString('en-IN')}</p>
+              </div>
+            </div>
+          )}
           {payslips.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -441,9 +383,9 @@ export default function PayslipsWorkingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payslips.map((payslip) => {
-                    const emp = mockEmployees.find(e => e.id === payslip.employeeId);
-                    const [year, month] = payslip.payPeriod.split('-');
+                  {payslips.map((payslip: any) => {
+                    const emp = employees.find((e: any) => e.id === payslip.employeeId);
+                    const [year, month] = payslip.payPeriod?.split('-') || ['2025', '08'];
                     const monthName = months[parseInt(month) - 1];
                     
                     return (
@@ -456,13 +398,13 @@ export default function PayslipsWorkingPage() {
                         </td>
                         <td className="p-4">
                           <p>{monthName} {year}</p>
-                          <p className="text-sm text-gray-500">{payslip.createdAt}</p>
+                          <p className="text-sm text-gray-500">{payslip.generatedAt}</p>
                         </td>
                         <td className="p-4 text-right">
-                          ₹{payslip.grossSalary?.toLocaleString('en-IN')}
+                          ₹{parseInt(payslip.grossPay || 0).toLocaleString('en-IN')}
                         </td>
                         <td className="p-4 text-right">
-                          ₹{payslip.netSalary?.toLocaleString('en-IN')}
+                          ₹{parseInt(payslip.netPay || 0).toLocaleString('en-IN')}
                         </td>
                         <td className="p-4 text-center">
                           <Badge variant={payslip.status === 'generated' ? 'default' : 'secondary'}>

@@ -628,6 +628,34 @@ export class DatabaseStorage implements IStorage {
     return result.changes > 0;
   }
 
+  // Payslips
+  async getPayslips(filters?: any): Promise<Payslip[]> {
+    try {
+      let query = this.database.select().from(payslips);
+      if (filters?.employeeId) {
+        query = query.where(eq(payslips.employeeId, filters.employeeId));
+      }
+      if (filters?.payPeriod) {
+        query = query.where(eq(payslips.payPeriod, filters.payPeriod));
+      }
+      
+      const result = await query.execute();
+      console.log(`DatabaseStorage: getPayslips result count: ${result.length}`);
+      return result;
+    } catch (error) {
+      console.error("Error fetching payslips:", error);
+      return [];
+    }
+  }
+
+  async createPayslip(payslipData: InsertPayslip): Promise<Payslip> {
+    const result = await this.database.insert(payslips).values({
+      ...payslipData,
+      generatedAt: new Date().toISOString()
+    }).returning();
+    return result[0];
+  }
+
   // Salary Slips methods
   async getSalarySlips(filters: any = {}): Promise<any[]> {
     try {
