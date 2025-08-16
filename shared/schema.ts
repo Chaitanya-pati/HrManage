@@ -188,92 +188,7 @@ export const payroll = sqliteTable("payroll", {
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
-// Salary Components - for flexible salary structure management
-export const salaryComponents = sqliteTable("salary_components", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  employeeId: text("employee_id").notNull(),
-  componentName: text("component_name").notNull(), // "Basic", "HRA", "DA", "Medical", etc.
-  componentType: text("component_type").notNull(), // "allowance", "deduction"
-  amount: numeric("amount").notNull(),
-  percentage: numeric("percentage"), // If percentage-based
-  isPercentage: integer("is_percentage", { mode: 'boolean' }).default(false),
-  isActive: integer("is_active", { mode: 'boolean' }).default(true),
-  effectiveFrom: text("effective_from").notNull(),
-  effectiveTo: text("effective_to"),
-  taxable: integer("taxable", { mode: 'boolean' }).default(true),
-  pfApplicable: integer("pf_applicable", { mode: 'boolean' }).default(false),
-  esiApplicable: integer("esi_applicable", { mode: 'boolean' }).default(false),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
-});
 
-// TDS Configuration - for tax calculation
-export const tdsConfiguration = sqliteTable("tds_configuration", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  financialYear: text("financial_year").notNull(),
-  slabFrom: numeric("slab_from").notNull(),
-  slabTo: numeric("slab_to"),
-  taxRate: numeric("tax_rate").notNull(),
-  isActive: integer("is_active", { mode: 'boolean' }).default(true),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-// Payslips - for PDF generation and storage
-export const payslips = sqliteTable("payslips", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  payrollId: text("payroll_id").notNull(),
-  employeeId: text("employee_id").notNull(),
-  month: integer("month").notNull(),
-  year: integer("year").notNull(),
-  pdfPath: text("pdf_path"),
-  emailSent: integer("email_sent", { mode: 'boolean' }).default(false),
-  downloadCount: integer("download_count").default(0),
-  generatedAt: text("generated_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-// Employee Loans - for loan deduction management
-export const employeeLoans = sqliteTable("employee_loans", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  employeeId: text("employee_id").notNull(),
-  loanType: text("loan_type").notNull(),
-  loanAmount: numeric("loan_amount").notNull(),
-  interestRate: numeric("interest_rate").default("0"),
-  emiAmount: numeric("emi_amount").notNull(),
-  remainingAmount: numeric("remaining_amount").notNull(),
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date").notNull(),
-  status: text("status").notNull().default("active"),
-  approvedBy: text("approved_by"),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-// Salary Advances - for advance salary management
-export const salaryAdvances = sqliteTable("salary_advances", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  employeeId: text("employee_id").notNull(),
-  advanceAmount: numeric("advance_amount").notNull(),
-  remainingAmount: numeric("remaining_amount").notNull(),
-  deductionAmount: numeric("deduction_amount").notNull(),
-  reason: text("reason").notNull(),
-  requestDate: text("request_date").notNull(),
-  approvedDate: text("approved_date"),
-  approvedBy: text("approved_by"),
-  status: text("status").notNull().default("pending"),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
-
-// Compliance Reports - for government reporting
-export const complianceReports = sqliteTable("compliance_reports", {
-  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
-  reportType: text("report_type").notNull(), // "PF", "ESI", "TDS", "Form16"
-  month: integer("month").notNull(),
-  year: integer("year").notNull(),
-  filePath: text("file_path"),
-  status: text("status").notNull().default("pending"),
-  generatedAt: text("generated_at"),
-  submittedAt: text("submitted_at"),
-  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
-});
 
 // Notifications - for payroll notifications
 export const notifications = sqliteTable("notifications", {
@@ -383,6 +298,123 @@ export const employeeLeaveBalances = sqliteTable("employee_leave_balances", {
   year: integer("year").notNull(),
   createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Salary Components for advanced payroll
+export const salaryComponents = sqliteTable("salary_components", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  financialYear: text("financial_year").notNull(),
+  basicSalary: numeric("basic_salary").notNull(),
+  hra: numeric("hra").default("0"),
+  conveyanceAllowance: numeric("conveyance_allowance").default("0"),
+  medicalAllowance: numeric("medical_allowance").default("0"),
+  specialAllowance: numeric("special_allowance").default("0"),
+  dearnessAllowance: numeric("dearness_allowance").default("0"),
+  otherAllowances: numeric("other_allowances").default("0"),
+  pfContribution: numeric("pf_contribution").default("0"),
+  esiContribution: numeric("esi_contribution").default("0"),
+  professionalTax: numeric("professional_tax").default("0"),
+  incomeTax: numeric("income_tax").default("0"),
+  otherDeductions: numeric("other_deductions").default("0"),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  effectiveFrom: text("effective_from").notNull(),
+  effectiveTo: text("effective_to"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// TDS Configuration
+export const tdsConfiguration = sqliteTable("tds_configuration", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  financialYear: text("financial_year").notNull(),
+  slabFrom: numeric("slab_from").notNull(),
+  slabTo: numeric("slab_to"),
+  taxRate: numeric("tax_rate").notNull(),
+  surcharge: numeric("surcharge").default("0"),
+  cess: numeric("cess").default("0"),
+  standardDeduction: numeric("standard_deduction").default("0"),
+  isActive: integer("is_active", { mode: 'boolean' }).default(true),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Payslips
+export const payslips = sqliteTable("payslips", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  payPeriod: text("pay_period").notNull(),
+  basicSalary: numeric("basic_salary").notNull(),
+  hra: numeric("hra").default("0"),
+  conveyanceAllowance: numeric("conveyance_allowance").default("0"),
+  medicalAllowance: numeric("medical_allowance").default("0"),
+  specialAllowance: numeric("special_allowance").default("0"),
+  overtimePay: numeric("overtime_pay").default("0"),
+  bonus: numeric("bonus").default("0"),
+  grossPay: numeric("gross_pay").notNull(),
+  pfDeduction: numeric("pf_deduction").default("0"),
+  esiDeduction: numeric("esi_deduction").default("0"),
+  tdsDeduction: numeric("tds_deduction").default("0"),
+  professionalTax: numeric("professional_tax").default("0"),
+  otherDeductions: numeric("other_deductions").default("0"),
+  totalDeductions: numeric("total_deductions").notNull(),
+  netPay: numeric("net_pay").notNull(),
+  workingDays: integer("working_days").notNull(),
+  presentDays: integer("present_days").notNull(),
+  leaveDays: integer("leave_days").default(0),
+  status: text("status").notNull().default("generated"),
+  generatedAt: text("generated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Employee Loans
+export const employeeLoans = sqliteTable("employee_loans", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  loanType: text("loan_type").notNull(),
+  loanAmount: numeric("loan_amount").notNull(),
+  interestRate: numeric("interest_rate").default("0"),
+  tenure: integer("tenure").notNull(), // in months
+  emiAmount: numeric("emi_amount").notNull(),
+  startDate: text("start_date").notNull(),
+  endDate: text("end_date").notNull(),
+  outstandingAmount: numeric("outstanding_amount").notNull(),
+  status: text("status").notNull().default("active"),
+  remarks: text("remarks"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Salary Advances
+export const salaryAdvances = sqliteTable("salary_advances", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  employeeId: text("employee_id").notNull(),
+  advanceAmount: numeric("advance_amount").notNull(),
+  deductionAmount: numeric("deduction_amount").notNull(),
+  installments: integer("installments").notNull(),
+  remainingInstallments: integer("remaining_installments").notNull(),
+  requestDate: text("request_date").notNull(),
+  approvalDate: text("approval_date"),
+  status: text("status").notNull().default("pending"),
+  reason: text("reason"),
+  approvedBy: text("approved_by"),
+  remarks: text("remarks"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
+});
+
+// Compliance Reports
+export const complianceReports = sqliteTable("compliance_reports", {
+  id: text("id").primaryKey().default(sql`(hex(randomblob(16)))`),
+  reportType: text("report_type").notNull(), // "pf", "esi", "tds", "pt"
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  employeeCount: integer("employee_count").notNull(),
+  totalAmount: numeric("total_amount").notNull(),
+  employerContribution: numeric("employer_contribution").default("0"),
+  employeeContribution: numeric("employee_contribution").default("0"),
+  challanNumber: text("challan_number"),
+  paymentDate: text("payment_date"),
+  status: text("status").notNull().default("pending"),
+  remarks: text("remarks"),
+  generatedBy: text("generated_by"),
+  createdAt: text("created_at").default(sql`CURRENT_TIMESTAMP`),
 });
 
 // Insert schemas
